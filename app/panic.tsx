@@ -1,0 +1,285 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, StyleSheet, Pressable } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import { Screen } from '@/components/Screen';
+import { MessageBeat } from '@/components/MessageBeat';
+import { BreathingOrb } from '@/components/BreathingOrb';
+import { GroundingSequence } from '@/components/GroundingSequence';
+import { CalmButton } from '@/components/CalmButton';
+import { Whisper, Body, Caption } from '@/theme/Type';
+import { useTheme, useModeOnFocus } from '@/theme/ThemeProvider';
+import { spacing } from '@/theme/tokens';
+import { useSessionStore } from '@/store/useSessionStore';
+import {
+  CALMING_QUESTIONS,
+  buildCalmingPlan,
+  PlanStep,
+  reassuranceLine,
+  openingLineForFeeling,
+} from '@/engines/calmingPath';
+import { CalmingPathSignals } from '@/engines/breathing';
+import { BREATHING_TECHNIQUES } from '@/engines/breathing';
+import { PHYSICAL_GROUNDING_STEPS, FIVE_SENSES_SEQUENCE } from '@/data/grounding';
+import { useSound } from '@/engines/SoundProvider';
+import { useSettingsStore } from '@/store/useSettingsStore';
+import { useCalmPlanStore } from '@/store/useCalmPlanStore';
+import { useLettersStore } from '@/store/useLettersStore';
+import { Feeling } from '@/types';
+
+type Stage = 'opening' | 'letter-offer' | 'letter-read' | 'questions' | PlanStep['kind'] | 'closing';
+
+function sampleSenses(n: number) {
+  const shuffled = [...FIVE_SENSES_SEQUENCE].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, n).map((p) => p.text);
+}
+
+export default function Panic() {
+  useModeOnFocus('panic');
+  const { palette } = useTheme();
+  const params = useLocalSearchParams<{ feeling?: string }>();
+  const feeling = (params.feeling as Feeling) ?? 'panicking';
+
+  const start = useSessionStore((s) => s.start);
+  const logStep = useSessionStore((s) => s.logStep);
+  const logTechnique = useSessionStore((s) => s.logTechnique);
+  const sound = useSound();
+  const soundEnabled = useSettingsStore((s) => s.soundEnabled);
+
+  const [stage, setStage] = useState<Stage>('opening');
+  const [qIndex, setQIndex] = useState(0);
+  const [signals, setSignals] = useState<CalmingPathSignals>({});
+  const [plan, setPlan] = useState<PlanStep[]>([]);
+  const [planIndex, setPlanIndex] = useState(0);
+
+  const groundingSteps = useMemo(
+    () => [...PHYSICAL_GROUNDING_STEPS.slice(0, 2), ...sampleSenses(3)],
+    [],
+  );
+
+  const letters = useLettersStore((s) => s.letters);
+  const markLetterOpened = useLettersStore((s) => s.markOpened);
+  const [chosenLetter, setChosenLetter] = useState<{ title: string; body: string } | null>(null);
+
+  const calmPlanEntries = useCalmPlanStore((s) => s.entries);
+  const calmPlanLine = useMemo(() => {
+    const pool = calmPlanEntries.filter(
+      (e) => e.category === 'reasons-it-will-be-okay' || e.category === 'things-to-remember',
+    );
+    if (pool.length === 0) return null;
+    return pool[Math.floor(Math.random() * pool.length)].text;
+  }, [calmPlanEntries]);
+
+  useEffect(() => {
+    start(feeling);
+    logStep('panic:opening');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (stage === 'breathing' && soundEnabled) {
+      sound.play('brown', 0.28);
+    }
+    return () => {
+      if (stage === 'breathing') sound.stop(1200);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage]);
+
+  const answerQuestion = (value: boolean | undefined) => {
+    const q = CALMING_QUESTIONS[qIndex];
+    const resolved = q.id === 'unsafe' && value !== undefined ? !value : value;
+    const next = { ...signals, [q.id]: resolved };
+    setSignals(next);
+    if (qIndex < CALMING_QUESTIONS.length - 1) {
+      setQIndex((i) => i + 1);
+    } else {
+      const builtPlan = buildCalmingPlan(next);
+      setPlan(builtPlan);
+      setPlanIndex(0);
+      logStep('panic:plan-built');
+      setStage(builtPlan[0].kind);
+    }
+  };
+
+  const advancePlan = () => {
+    const nextIndex = planIndex + 1;
+    if (nextIndex >= plan.length) {
+      setStage('closing');
+      logStep('panic:closing');
+      router.replace({ pathname: '/reflection', params: { feeling } });
+      return;
+    }
+    setPlanIndex(nextIndex);
+    setStage(plan[nextIndex].kind);
+  };
+
+  return (
+    <Screen center>
+      {stage === 'opening' && (
+        <MessageBeat
+          beats={[
+            { text: openingLineForFeeling(feeling), holdMs: 2800 },
+            { text: 'Stay with me for the next few minutes.', holdMs: 2600 },
+            { text: 'Put both feet on the floor.', holdMs: 3200 },
+            { text: 'Good.', holdMs: 1600 },
+            { text: 'Notice where your body is touching the chair or bed.', holdMs: 3400 },
+          ]}
+          onDone={() => {
+            if (letters.length > 0) {
+              setStage('letter-offer');
+            } else {
+              logStep('panic:questions');
+              setStage('questions');
+            }
+          }}
+        />
+      )}
+
+      {stage === 'letter-offer' && (
+        <View style={styles.block}>
+          <Whisper center>Calm you left you something.</Whisper>
+          <View style={{ marginTop: spacing.xl, gap: 10, width: '100%' }}>
+            <CalmButton
+              label="Read it"
+              variant="primary"
+              size="large"
+              style={{ width: '100%' }}
+              onPress={() => {
+                const letter = letters[Math.floor(Math.random() * letters.length)];
+                markLetterOpened(letter.id);
+                setChosenLetter(letter);
+                setStage('letter-read');
+              }}
+            />
+            <CalmButton
+              label="Not now"
+              variant="ghost"
+              onPress={() => {
+                logStep('panic:questions');
+                setStage('questions');
+              }}
+            />
+          </View>
+        </View>
+      )}
+
+      {stage === 'letter-read' && chosenLetter && (
+        <View style={styles.block}>
+          <Caption color={palette.textFaint}>{chosenLetter.title.toUpperCase()}</Caption>
+          <Whisper center style={{ marginTop: spacing.md }}>
+            {chosenLetter.body}
+          </Whisper>
+          <CalmButton
+            label="Continue"
+            variant="primary"
+            size="large"
+            style={{ marginTop: spacing.xl, width: '100%' }}
+            onPress={() => {
+              logStep('panic:questions');
+              setStage('questions');
+            }}
+          />
+        </View>
+      )}
+
+      {stage === 'questions' && (
+        <View style={styles.block}>
+          <Whisper center>{CALMING_QUESTIONS[qIndex].text}</Whisper>
+          <View style={styles.answerRow}>
+            <CalmButton label="Yes" onPress={() => answerQuestion(true)} style={styles.answerBtn} />
+            <CalmButton label="No" onPress={() => answerQuestion(false)} style={styles.answerBtn} />
+          </View>
+          <CalmButton label="Not sure" variant="ghost" onPress={() => answerQuestion(undefined)} />
+        </View>
+      )}
+
+      {stage === 'safety-check' && (
+        <View style={styles.block}>
+          <Whisper center>If you can, move somewhere that feels even a little safer.</Whisper>
+          <Body color={palette.textMuted} center style={{ marginTop: spacing.md }}>
+            There's no rush. I'll be right here.
+          </Body>
+          <CalmButton label="I'm okay to continue" variant="primary" size="large" style={{ marginTop: spacing.xl }} onPress={advancePlan} />
+        </View>
+      )}
+
+      {stage === 'breathing' && (
+        <View style={styles.block}>
+          <BreathingOrb
+            technique={BREATHING_TECHNIQUES[plan[planIndex].breathingTechnique ?? 'extended-exhale']}
+            running
+            onPhase={(phase) => {
+              if (!soundEnabled) return;
+              const target = phase.key === 'exhale' || phase.key === 'holdEmpty' ? 0.16 : 0.32;
+              sound.duckTo(target, phase.seconds * 1000 * 0.8);
+            }}
+            onComplete={() => {
+              logTechnique('breathing');
+              logStep('panic:breathing-done');
+              advancePlan();
+            }}
+          />
+        </View>
+      )}
+
+      {stage === 'physical-grounding' && (
+        <GroundingSequence
+          steps={groundingSteps}
+          onComplete={() => {
+            logTechnique('grounding');
+            logStep('panic:grounding-done');
+            advancePlan();
+          }}
+        />
+      )}
+
+      {stage === 'cognitive-distancing' && (
+        <MessageBeat
+          beats={[
+            'Your thoughts are loud right now.',
+            'They don’t need to stop for you to feel calmer.',
+            { text: 'They can just be thoughts for a minute.', holdMs: 3200 },
+          ]}
+          onDone={() => {
+            logTechnique('cognitive-defusion');
+            advancePlan();
+          }}
+        />
+      )}
+
+      {stage === 'reassurance' && (
+        <MessageBeat
+          beats={[
+            { text: reassuranceLine(signals), holdMs: 4200 },
+            ...(calmPlanLine
+              ? [
+                  { text: 'You wrote this when you were feeling okay:', holdMs: 2800 },
+                  { text: `“${calmPlanLine}”`, holdMs: 4200 },
+                ]
+              : [{ text: 'You’ve gotten through moments like this before.', holdMs: 3200 }]),
+          ]}
+          onDone={() => {
+            logTechnique('emotional-regulation');
+            advancePlan();
+          }}
+        />
+      )}
+
+      {stage !== 'opening' && stage !== 'closing' && (
+        <Animated.View entering={FadeIn.delay(600)} style={styles.footer}>
+          <Pressable onPress={() => router.push('/connection')}>
+            <Caption color={palette.textFaint}>I don't want to be alone</Caption>
+          </Pressable>
+        </Animated.View>
+      )}
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  block: { alignItems: 'center', width: '100%', paddingHorizontal: spacing.md },
+  answerRow: { flexDirection: 'row', gap: 12, marginTop: spacing.xl, width: '100%' },
+  answerBtn: { flex: 1 },
+  footer: { position: 'absolute', bottom: 12, alignSelf: 'center' },
+});

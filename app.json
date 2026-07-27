@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "Ebb",
+    "slug": "ebb",
+    "scheme": "ebb",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#0B0F14",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.ebb.calm",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Ebb can use your camera for grounding exercises that ask you to find objects around you. Nothing is recorded, saved, or uploaded.",
+        "NSContactsUsageDescription": "Ebb can use your contacts to help you quickly reach someone you trust when you don't want to be alone."
+      }
+    },
+    "android": {
+      "package": "app.ebb.calm",
+      "adaptiveIcon": {
+        "backgroundColor": "#0B0F14",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": ["CAMERA"]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-splash-screen",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Ebb can use your camera for grounding exercises that ask you to find objects around you. Nothing is recorded, saved, or uploaded."
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
