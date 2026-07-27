@@ -8,6 +8,7 @@ import Animated, {
   LinearTransition,
 } from 'react-native-reanimated';
 import { Screen } from '@/components/Screen';
+import { Environment } from '@/components/environments/Environment';
 import { CalmButton } from '@/components/CalmButton';
 import { Title, Body, Whisper, Caption } from '@/theme/Type';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -80,8 +81,11 @@ export default function RacingThoughts() {
     router.replace('/reflection');
   };
 
+  const categorizedCount = thoughts.length - activeCount;
+  const warmth = thoughts.length > 0 ? Math.min(0.6, (categorizedCount / thoughts.length) * 0.6) : 0;
+
   return (
-    <Screen>
+    <Screen backdrop={<Environment id="abstract" warmth={warmth} />}>
       <View style={styles.header}>
         <Title>Empty my head</Title>
         <Body color={palette.textMuted} style={{ marginTop: 6 }}>

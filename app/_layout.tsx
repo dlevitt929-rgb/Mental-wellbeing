@@ -7,6 +7,7 @@ import * as SystemUI from 'expo-system-ui';
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 import { SoundProvider } from '@/engines/SoundProvider';
+import { TransitionOverlayProvider } from '@/engines/TransitionOverlay';
 import { useAppFonts } from '@/theme/useAppFonts';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -25,14 +26,16 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
         <SoundProvider>
-          <StatusBar style="light" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              animation: 'fade',
-              contentStyle: { backgroundColor: '#0B0F14' },
-            }}
-          />
+          <TransitionOverlayProvider>
+            <StatusBar style="light" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                animation: 'fade',
+                contentStyle: { backgroundColor: '#0B0F14' },
+              }}
+            />
+          </TransitionOverlayProvider>
         </SoundProvider>
       </ThemeProvider>
     </GestureHandlerRootView>

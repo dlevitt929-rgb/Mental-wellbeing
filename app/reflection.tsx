@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Screen } from '@/components/Screen';
+import { Environment } from '@/components/environments/Environment';
 import { CalmButton } from '@/components/CalmButton';
 import { Whisper, Body } from '@/theme/Type';
 import { useTheme, useModeOnFocus } from '@/theme/ThemeProvider';
@@ -42,7 +43,7 @@ export default function Reflection() {
 
   if (!helped) {
     return (
-      <Screen center>
+      <Screen center backdrop={<Environment id="sunset" warmth={0.35} />}>
         <Animated.View entering={FadeIn.duration(400)} style={styles.block}>
           <Whisper center>Are you feeling even slightly better?</Whisper>
           <View style={styles.options}>
@@ -57,7 +58,7 @@ export default function Reflection() {
 
   if (!whatHelped) {
     return (
-      <Screen center>
+      <Screen center backdrop={<Environment id="sunset" warmth={0.55} />}>
         <Animated.View entering={FadeIn.duration(400)} style={styles.block}>
           <Whisper center>What helped most?</Whisper>
           <View style={styles.options}>
@@ -87,7 +88,7 @@ export default function Reflection() {
   }
 
   return (
-    <Screen center>
+    <Screen center backdrop={<Environment id="sunset" warmth={0.85} />}>
       <Animated.View entering={FadeIn.duration(400)} style={styles.block}>
         <Whisper center>{closingLine(helped)}</Whisper>
         <View style={styles.options}>

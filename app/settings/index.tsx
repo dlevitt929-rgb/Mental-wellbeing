@@ -13,6 +13,7 @@ import { useCalmPlanStore } from '@/store/useCalmPlanStore';
 import { useContactsStore } from '@/store/useContactsStore';
 import { useLettersStore } from '@/store/useLettersStore';
 import { useWorryStore } from '@/store/useWorryStore';
+import { EnvironmentPicker } from '@/components/EnvironmentPicker';
 
 export default function Settings() {
   const { palette } = useTheme();
@@ -22,6 +23,10 @@ export default function Settings() {
   const setSoundEnabled = useSettingsStore((s) => s.setSoundEnabled);
   const setHapticsEnabled = useSettingsStore((s) => s.setHapticsEnabled);
   const setNightReminderEnabled = useSettingsStore((s) => s.setNightReminderEnabled);
+  const calmEnvironment = useSettingsStore((s) => s.calmEnvironment);
+  const sleepEnvironment = useSettingsStore((s) => s.sleepEnvironment);
+  const setCalmEnvironment = useSettingsStore((s) => s.setCalmEnvironment);
+  const setSleepEnvironment = useSettingsStore((s) => s.setSleepEnvironment);
 
   const sessions = useSessionStore((s) => s.sessions);
   const calmPlanCount = useCalmPlanStore((s) => s.entries.length);
@@ -62,6 +67,17 @@ export default function Settings() {
           value={nightReminderEnabled}
           onChange={setNightReminderEnabled}
         />
+      </Section>
+
+      <Section title="Where would you rather be">
+        <Body color={palette.textMuted} style={{ marginBottom: spacing.sm }}>
+          During breathing & calming sessions
+        </Body>
+        <EnvironmentPicker value={calmEnvironment} onChange={setCalmEnvironment} />
+        <Body color={palette.textMuted} style={{ marginTop: spacing.lg, marginBottom: spacing.sm }}>
+          At night
+        </Body>
+        <EnvironmentPicker value={sleepEnvironment} onChange={setSleepEnvironment} options={['night', 'rain', 'ocean', 'clouds']} />
       </Section>
 
       <Section title="Your privacy">

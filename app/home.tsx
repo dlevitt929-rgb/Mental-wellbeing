@@ -3,24 +3,32 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { Screen } from '@/components/Screen';
-import { Title, Body, Callout, Caption } from '@/theme/Type';
+import { CalmTile } from '@/components/CalmTile';
+import { HeroHelpButton } from '@/components/HeroHelpButton';
+import { Title, Body, Caption } from '@/theme/Type';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing, radii } from '@/theme/tokens';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useWorryStore, selectPendingFromBefore } from '@/store/useWorryStore';
 import { deriveInsights } from '@/engines/insights';
-import { Feeling } from '@/types';
 
-const FEELINGS: { id: Feeling; label: string; route: string }[] = [
-  { id: 'panicking', label: 'I think I’m panicking', route: '/panic?feeling=panicking' },
-  { id: 'cant-sleep', label: 'I can’t sleep', route: '/sleep' },
-  { id: 'racing-thoughts', label: 'My thoughts won’t stop', route: '/racing-thoughts' },
-  { id: 'overwhelmed', label: 'I feel overwhelmed', route: '/panic?feeling=overwhelmed' },
-  { id: 'alone', label: 'I feel alone', route: '/connection' },
-  { id: 'need-calm', label: 'I need to calm down', route: '/panic?feeling=need-calm' },
-  { id: 'something-happened', label: 'Something happened', route: '/panic?feeling=something-happened' },
-  { id: 'dont-know', label: 'I don’t even know', route: '/unsure' },
+interface TileDef {
+  label: string;
+  glyph: string;
+  colors: [string, string];
+  route: string;
+}
+
+const TILES: TileDef[] = [
+  { label: 'I can’t sleep', glyph: '☾', colors: ['#8A6F9E', '#5C6C8A'], route: '/sleep' },
+  { label: 'My mind won’t stop', glyph: '≈', colors: ['#7C93C3', '#8E7CC3'], route: '/racing-thoughts' },
+  { label: 'I feel overwhelmed', glyph: '◎', colors: ['#E2685A', '#D98E63'], route: '/panic?feeling=overwhelmed' },
+  { label: 'I feel alone', glyph: '◐', colors: ['#9C8AD9', '#5C6C8A'], route: '/connection' },
+  { label: 'I need to calm down', glyph: '⊙', colors: ['#E7A65C', '#8E7CC3'], route: '/panic?feeling=need-calm' },
+  { label: 'Something happened', glyph: '✦', colors: ['#D98E63', '#9C5B7C'], route: '/panic?feeling=something-happened' },
+  { label: 'Stay with me', glyph: '◉', colors: ['#E7A65C', '#C0658A'], route: '/stay-with-me' },
+  { label: 'I don’t even know', glyph: '⋯', colors: ['#7C93C3', '#726F8A'], route: '/unsure' },
 ];
 
 export default function Home() {
@@ -39,8 +47,10 @@ export default function Home() {
         <Title style={{ marginTop: 6 }}>What's happening right now?</Title>
       </View>
 
+      <HeroHelpButton />
+
       {pendingWorries.length > 0 && (
-        <View style={[styles.insightsBox, { borderColor: palette.border, backgroundColor: palette.surface, marginBottom: spacing.md }]}>
+        <View style={[styles.insightsBox, { borderColor: palette.border, backgroundColor: palette.surface, marginTop: spacing.lg }]}>
           <Caption color={palette.textFaint} style={{ marginBottom: 6 }}>
             LAST NIGHT YOU SET THIS ASIDE
           </Caption>
@@ -58,10 +68,14 @@ export default function Home() {
       )}
 
       <View style={styles.grid}>
-        {FEELINGS.map((f, i) => (
-          <Animated.View key={f.id} entering={FadeInUp.delay(i * 45).duration(360)}>
-            <FeelingRow label={f.label} onPress={() => router.push(f.route as any)} />
-          </Animated.View>
+        {chunk(TILES, 2).map((row, ri) => (
+          <View key={ri} style={styles.row}>
+            {row.map((t, ci) => (
+              <Animated.View key={t.label} style={{ flex: 1 }} entering={FadeInUp.delay((ri * 2 + ci) * 55).duration(380)}>
+                <CalmTile label={t.label} glyph={t.glyph} colors={t.colors} route={t.route} />
+              </Animated.View>
+            ))}
+          </View>
         ))}
       </View>
 
@@ -85,31 +99,18 @@ export default function Home() {
   );
 }
 
+function chunk<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
 function greeting() {
   const h = new Date().getHours();
   if (h < 5) return 'It’s late';
   if (h < 12) return 'Good morning';
   if (h < 18) return 'Good afternoon';
   return 'Good evening';
-}
-
-function FeelingRow({ label, onPress }: { label: string; onPress: () => void }) {
-  const { palette } = useTheme();
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.row,
-        {
-          backgroundColor: palette.surface,
-          borderColor: palette.border,
-          opacity: pressed ? 0.75 : 1,
-        },
-      ]}
-    >
-      <Callout>{label}</Callout>
-    </Pressable>
-  );
 }
 
 function SecondaryLink({ label, onPress }: { label: string; onPress: () => void }) {
@@ -123,13 +124,8 @@ function SecondaryLink({ label, onPress }: { label: string; onPress: () => void 
 
 const styles = StyleSheet.create({
   header: { marginBottom: spacing.lg },
-  grid: { gap: 10 },
-  row: {
-    paddingVertical: 18,
-    paddingHorizontal: spacing.md,
-    borderRadius: radii.md,
-    borderWidth: 1,
-  },
+  grid: { gap: 10, marginTop: spacing.lg },
+  row: { flexDirection: 'row', gap: 10 },
   insightsBox: {
     marginTop: spacing.lg,
     padding: spacing.md,

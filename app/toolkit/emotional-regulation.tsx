@@ -10,6 +10,8 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { spacing, radii } from '@/theme/tokens';
 import { BREATHING_TECHNIQUES } from '@/engines/breathing';
 import { useSessionStore } from '@/store/useSessionStore';
+import { useSettingsStore } from '@/store/useSettingsStore';
+import { useSessionAmbience } from '@/hooks/useSessionAmbience';
 
 type Stage = 'set' | 'breathing' | 'compare';
 
@@ -19,6 +21,8 @@ export default function EmotionalRegulationToolkit() {
   const [intensity, setIntensity] = useState(0.7);
   const [startIntensity, setStartIntensity] = useState(0.7);
   const logTechnique = useSessionStore((s) => s.logTechnique);
+  const calmEnvironment = useSettingsStore((s) => s.calmEnvironment);
+  useSessionAmbience(stage === 'breathing', calmEnvironment, 0.22);
   const technique = BREATHING_TECHNIQUES['extended-exhale'];
 
   if (stage === 'compare') {

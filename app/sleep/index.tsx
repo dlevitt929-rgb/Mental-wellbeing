@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '@/components/Screen';
+import { Environment } from '@/components/environments/Environment';
+import { SessionSoundToggle } from '@/components/SessionSoundToggle';
 import { CalmButton } from '@/components/CalmButton';
 import { MessageBeat } from '@/components/MessageBeat';
 import { BreathingOrb } from '@/components/BreathingOrb';
@@ -15,7 +17,11 @@ import { Whisper, Title } from '@/theme/Type';
 import { useModeOnFocus } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/tokens';
 import { useSessionStore } from '@/store/useSessionStore';
+import { useSettingsStore } from '@/store/useSettingsStore';
+import { useSound } from '@/engines/SoundProvider';
+import { soundForEnvironment } from '@/engines/soundEngine';
 import { BREATHING_TECHNIQUES } from '@/engines/breathing';
+import { BreathingPhase } from '@/types';
 
 type WokeReason = 'racing' | 'anxious' | 'nightmare' | 'uncomfortable' | 'dontknow' | 'notasleep';
 type NightStep = 'nothing-to-solve' | 'body-scan' | 'pmr' | 'breathing' | 'shuffle' | 'counting' | 'reassurance';
@@ -44,10 +50,14 @@ export default function Sleep() {
   const logStep = useSessionStore((s) => s.logStep);
   const logTechnique = useSessionStore((s) => s.logTechnique);
   const endSession = useSessionStore((s) => s.end);
+  const sleepEnvironment = useSettingsStore((s) => s.sleepEnvironment);
+  const soundEnabled = useSettingsStore((s) => s.soundEnabled);
+  const sound = useSound();
 
   const [reason, setReason] = useState<WokeReason | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [done, setDone] = useState(false);
+  const [breathPhase, setBreathPhase] = useState<BreathingPhase['key'] | null>(null);
   const started = useRef(false);
 
   useEffect(() => {
@@ -56,6 +66,19 @@ export default function Sleep() {
       started.current = true;
     }
   }, []);
+
+  // Ambient bed plays for the guided part of the session only; the "done" screen
+  // hands full control to SoundPicker so the person can choose what to fall asleep to.
+  useEffect(() => {
+    if (reason && !done && soundEnabled) {
+      sound.play(soundForEnvironment(sleepEnvironment), 0.24);
+    }
+    if (done) sound.stop(1400);
+    return () => {
+      if (reason && !done) sound.stop(1000);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reason, done]);
 
   const sequence = reason ? SEQUENCES[reason] : [];
 
@@ -77,9 +100,11 @@ export default function Sleep() {
     router.replace('/home');
   };
 
+  const backdrop = <Environment id={sleepEnvironment} breathPhase={breathPhase} warmth={done ? 0.2 : 0} />;
+
   if (!reason) {
     return (
-      <Screen center>
+      <Screen center backdrop={backdrop}>
         <View style={styles.block}>
           <Title center>What woke you up?</Title>
           <View style={{ marginTop: spacing.xl, gap: 10, width: '100%' }}>
@@ -94,7 +119,7 @@ export default function Sleep() {
 
   if (done) {
     return (
-      <Screen center>
+      <Screen center backdrop={backdrop}>
         <View style={styles.block}>
           <Whisper center>That's enough for now.</Whisper>
           <View style={{ marginTop: spacing.xl, width: '100%' }}>
@@ -109,7 +134,7 @@ export default function Sleep() {
   const step = sequence[stepIndex];
 
   return (
-    <Screen center>
+    <Screen center backdrop={backdrop} overlay={<SessionSoundToggle />}>
       {step === 'nothing-to-solve' && <NothingToSolveTonight onDone={advance} />}
       {step === 'body-scan' && <BodyScanPlayer onDone={advance} />}
       {step === 'pmr' && <PMRPlayer onDone={advance} />}
@@ -119,6 +144,7 @@ export default function Sleep() {
         <BreathingOrb
           technique={BREATHING_TECHNIQUES.diaphragmatic}
           running
+          onPhase={(phase) => setBreathPhase(phase.key)}
           onComplete={() => {
             logTechnique('breathing');
             advance();

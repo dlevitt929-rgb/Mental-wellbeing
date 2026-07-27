@@ -17,3 +17,22 @@ export const SOUND_LABELS: Record<SoundId, string> = {
   brown: 'Brown noise',
   room: 'Soft room',
 };
+
+/** Which ambient bed matches each visual environment, for auto-playing during a session. */
+export function soundForEnvironment(id: string): SoundId {
+  switch (id) {
+    case 'rain':
+      return 'rain';
+    case 'ocean':
+      return 'ocean';
+    case 'fire':
+      return 'fireplace';
+    case 'forest':
+      return 'wind';
+    case 'night':
+    case 'clouds':
+      return 'room';
+    default:
+      return 'brown';
+  }
+}

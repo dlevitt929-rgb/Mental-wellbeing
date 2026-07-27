@@ -3,6 +3,8 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Screen } from '@/components/Screen';
+import { Environment } from '@/components/environments/Environment';
+import { SessionSoundToggle } from '@/components/SessionSoundToggle';
 import { MessageBeat } from '@/components/MessageBeat';
 import { BreathingOrb } from '@/components/BreathingOrb';
 import { GroundingSequence } from '@/components/GroundingSequence';
@@ -25,9 +27,9 @@ import { useSound } from '@/engines/SoundProvider';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useCalmPlanStore } from '@/store/useCalmPlanStore';
 import { useLettersStore } from '@/store/useLettersStore';
-import { Feeling } from '@/types';
+import { Feeling, BreathingPhase } from '@/types';
 
-type Stage = 'opening' | 'letter-offer' | 'letter-read' | 'questions' | PlanStep['kind'] | 'closing';
+type Stage = 'opening' | 'letter-offer' | 'letter-read' | 'questions' | PlanStep['kind'] | 'landing';
 
 function sampleSenses(n: number) {
   const shuffled = [...FIVE_SENSES_SEQUENCE].sort(() => Math.random() - 0.5);
@@ -45,12 +47,14 @@ export default function Panic() {
   const logTechnique = useSessionStore((s) => s.logTechnique);
   const sound = useSound();
   const soundEnabled = useSettingsStore((s) => s.soundEnabled);
+  const calmEnvironment = useSettingsStore((s) => s.calmEnvironment);
 
   const [stage, setStage] = useState<Stage>('opening');
   const [qIndex, setQIndex] = useState(0);
   const [signals, setSignals] = useState<CalmingPathSignals>({});
   const [plan, setPlan] = useState<PlanStep[]>([]);
   const [planIndex, setPlanIndex] = useState(0);
+  const [breathPhase, setBreathPhase] = useState<BreathingPhase['key'] | null>(null);
 
   const groundingSteps = useMemo(
     () => [...PHYSICAL_GROUNDING_STEPS.slice(0, 2), ...sampleSenses(3)],
@@ -79,6 +83,8 @@ export default function Panic() {
   useEffect(() => {
     if (stage === 'breathing' && soundEnabled) {
       sound.play('brown', 0.28);
+    } else if (stage !== 'breathing') {
+      setBreathPhase(null);
     }
     return () => {
       if (stage === 'breathing') sound.stop(1200);
@@ -105,17 +111,32 @@ export default function Panic() {
   const advancePlan = () => {
     const nextIndex = planIndex + 1;
     if (nextIndex >= plan.length) {
-      setStage('closing');
-      logStep('panic:closing');
-      router.replace({ pathname: '/reflection', params: { feeling } });
+      setStage('landing');
+      logStep('panic:landing');
       return;
     }
     setPlanIndex(nextIndex);
     setStage(plan[nextIndex].kind);
   };
 
+  const warmth = useMemo(() => {
+    if (stage === 'landing') return 1;
+    if (plan.length === 0) return 0;
+    return 0.12 + 0.55 * (planIndex / plan.length);
+  }, [stage, planIndex, plan.length]);
+
   return (
-    <Screen center>
+    <Screen
+      center
+      backdrop={
+        <Environment
+          id={calmEnvironment}
+          breathPhase={stage === 'breathing' ? breathPhase : null}
+          warmth={warmth}
+        />
+      }
+      overlay={stage === 'breathing' ? <SessionSoundToggle /> : undefined}
+    >
       {stage === 'opening' && (
         <MessageBeat
           beats={[
@@ -210,6 +231,7 @@ export default function Panic() {
             technique={BREATHING_TECHNIQUES[plan[planIndex].breathingTechnique ?? 'extended-exhale']}
             running
             onPhase={(phase) => {
+              setBreathPhase(phase.key);
               if (!soundEnabled) return;
               const target = phase.key === 'exhale' || phase.key === 'holdEmpty' ? 0.16 : 0.32;
               sound.duckTo(target, phase.seconds * 1000 * 0.8);
@@ -266,7 +288,26 @@ export default function Panic() {
         />
       )}
 
-      {stage !== 'opening' && stage !== 'closing' && (
+      {stage === 'landing' && (
+        <View style={styles.block}>
+          <MessageBeat
+            beats={[
+              { text: 'You made it through the last few minutes.', holdMs: 3600 },
+              { text: 'Stay here as long as you need.', holdMs: 3600 },
+            ]}
+          />
+          <Animated.View entering={FadeIn.delay(4200).duration(800)}>
+            <CalmButton
+              label="I'm ready to continue"
+              variant="primary"
+              style={{ marginTop: spacing.xxl }}
+              onPress={() => router.replace({ pathname: '/reflection', params: { feeling } })}
+            />
+          </Animated.View>
+        </View>
+      )}
+
+      {stage !== 'opening' && stage !== 'landing' && (
         <Animated.View entering={FadeIn.delay(600)} style={styles.footer}>
           <Pressable onPress={() => router.push('/connection')}>
             <Caption color={palette.textFaint}>I don't want to be alone</Caption>

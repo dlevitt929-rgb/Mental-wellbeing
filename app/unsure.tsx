@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Screen } from '@/components/Screen';
+import { Environment } from '@/components/environments/Environment';
 import { CalmButton } from '@/components/CalmButton';
 import { Whisper, Body } from '@/theme/Type';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -38,7 +39,7 @@ export default function Unsure() {
 
   if (result) {
     return (
-      <Screen center>
+      <Screen center backdrop={<Environment id="abstract" warmth={0.5} />}>
         <Animated.View entering={FadeIn.duration(450)} style={styles.block}>
           <Whisper center>{result.line}</Whisper>
           <Body color={palette.textMuted} center style={{ marginTop: spacing.md }}>
@@ -60,7 +61,7 @@ export default function Unsure() {
   const step = QUESTIONS[qIndex];
 
   return (
-    <Screen center>
+    <Screen center backdrop={<Environment id="abstract" warmth={qIndex / QUESTIONS.length * 0.2} />}>
       <View style={styles.block}>
         {step === 'bodyState' && (
           <>

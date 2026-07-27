@@ -3,6 +3,8 @@ import { View, StyleSheet, TextInput, ScrollView, Pressable } from 'react-native
 import { router, useLocalSearchParams } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Screen } from '@/components/Screen';
+import { Environment } from '@/components/environments/Environment';
+import { SessionSoundToggle } from '@/components/SessionSoundToggle';
 import { MessageBeat } from '@/components/MessageBeat';
 import { CalmButton } from '@/components/CalmButton';
 import { Body, Caption } from '@/theme/Type';
@@ -49,7 +51,7 @@ export default function StayWithMe() {
       logTechnique('stay-with-me');
       started.current = true;
     }
-    if (soundEnabled) sound.play('room', 0.22);
+    if (soundEnabled) sound.play('fireplace', 0.2);
     return () => sound.stop(1000);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -77,7 +79,7 @@ export default function StayWithMe() {
   };
 
   return (
-    <Screen padded={mode === 'talk'}>
+    <Screen padded={mode === 'talk'} backdrop={<Environment id="fire" warmth={0.55} />} overlay={<SessionSoundToggle />}>
       <View style={styles.tabs}>
         <TabButton label="Stay quiet" active={mode === 'quiet'} onPress={() => setMode('quiet')} />
         <TabButton label="Talk" active={mode === 'talk'} onPress={() => setMode('talk')} />
