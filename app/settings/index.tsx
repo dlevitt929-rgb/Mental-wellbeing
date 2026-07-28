@@ -13,6 +13,7 @@ import { useCalmPlanStore } from '@/store/useCalmPlanStore';
 import { useContactsStore } from '@/store/useContactsStore';
 import { useLettersStore } from '@/store/useLettersStore';
 import { useWorryStore } from '@/store/useWorryStore';
+import { useJournalStore } from '@/store/useJournalStore';
 import { EnvironmentPicker } from '@/components/EnvironmentPicker';
 
 export default function Settings() {
@@ -33,11 +34,12 @@ export default function Settings() {
   const contactsCount = useContactsStore((s) => s.contacts.length);
   const lettersCount = useLettersStore((s) => s.letters.length);
   const worriesCount = useWorryStore((s) => s.worries.length);
+  const journalCount = useJournalStore((s) => s.entries.length);
 
   const clearEverything = () => {
     Alert.alert(
       'Clear all your data?',
-      'This removes every session, calm plan entry, letter, contact, and worry stored on this device. This can’t be undone.',
+      'This removes every session, calm plan entry, letter, contact, worry, and journal entry stored on this device. This can’t be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -49,6 +51,7 @@ export default function Settings() {
             useContactsStore.setState({ contacts: [] });
             useLettersStore.setState({ letters: [] });
             useWorryStore.setState({ worries: [] });
+            useJournalStore.setState({ entries: [] });
           },
         },
       ],
@@ -88,8 +91,12 @@ export default function Settings() {
         </Body>
         <Caption color={palette.textFaint} style={{ marginTop: spacing.sm }}>
           Currently stored: {sessions.length} sessions · {calmPlanCount} calm plan entries ·{' '}
-          {contactsCount} contacts · {lettersCount} letters · {worriesCount} worries
+          {contactsCount} contacts · {lettersCount} letters · {worriesCount} worries ·{' '}
+          {journalCount} journal entries
         </Caption>
+        <Pressable onPress={() => router.push('/journal/privacy')} style={{ marginTop: spacing.sm }}>
+          <Caption color={palette.accent}>Journal lock, export & privacy →</Caption>
+        </Pressable>
         <CalmButton label="Clear all my data" variant="danger" style={{ marginTop: spacing.md }} onPress={clearEverything} />
       </Section>
 

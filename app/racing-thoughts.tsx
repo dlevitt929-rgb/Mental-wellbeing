@@ -14,6 +14,7 @@ import { Title, Body, Whisper, Caption } from '@/theme/Type';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing, radii } from '@/theme/tokens';
 import { useSessionStore } from '@/store/useSessionStore';
+import { useJournalStore } from '@/store/useJournalStore';
 import { fonts } from '@/theme/useAppFonts';
 import { generateId } from '@/utils/id';
 import * as Haptics from 'expo-haptics';
@@ -44,8 +45,10 @@ export default function RacingThoughts() {
   const start = useSessionStore((s) => s.start);
   const logTechnique = useSessionStore((s) => s.logTechnique);
   const endSession = useSessionStore((s) => s.end);
+  const createJournalEntry = useJournalStore((s) => s.create);
   const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
   const started = useRef(false);
+  const [savedToJournal, setSavedToJournal] = useState(false);
 
   useEffect(() => {
     if (!started.current) {
@@ -78,7 +81,15 @@ export default function RacingThoughts() {
 
   const finish = () => {
     endSession();
-    router.replace('/reflection');
+    router.replace({ pathname: '/reflection', params: { feeling: 'racing-thoughts' } });
+  };
+
+  const saveThoughtsToJournal = () => {
+    const text = thoughts.map((t) => `• ${t.text}`).join('\n');
+    createJournalEntry(text);
+    logTechnique('journaling');
+    if (hapticsEnabled) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    setSavedToJournal(true);
   };
 
   const categorizedCount = thoughts.length - activeCount;
@@ -153,7 +164,21 @@ export default function RacingThoughts() {
       </View>
 
       {thoughts.length > 0 && (
-        <CalmButton label="I'm done for now" variant="primary" style={{ marginTop: spacing.md }} onPress={finish} />
+        <>
+          {!savedToJournal ? (
+            <CalmButton
+              label="Save these as a journal entry"
+              variant="ghost"
+              style={{ marginTop: spacing.md }}
+              onPress={saveThoughtsToJournal}
+            />
+          ) : (
+            <Caption color={palette.textFaint} style={{ marginTop: spacing.md, textAlign: 'center' }}>
+              Saved to your journal.
+            </Caption>
+          )}
+          <CalmButton label="I'm done for now" variant="primary" style={{ marginTop: spacing.sm }} onPress={finish} />
+        </>
       )}
     </Screen>
   );

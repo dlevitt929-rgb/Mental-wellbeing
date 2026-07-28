@@ -90,6 +90,7 @@ export default function Home() {
       )}
 
       <View style={styles.secondary}>
+        <SecondaryLink label="Your journal" onPress={() => router.push('/journal')} />
         <SecondaryLink label="Explore the toolkit" onPress={() => router.push('/toolkit')} />
         <SecondaryLink label="My Calm Plan" onPress={() => router.push('/calm-plan')} />
         <SecondaryLink label="A letter from calm you" onPress={() => router.push('/letters')} />

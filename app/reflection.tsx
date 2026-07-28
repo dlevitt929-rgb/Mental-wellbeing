@@ -29,9 +29,12 @@ const WHAT_HELPED: { label: string; value: Technique | 'time' }[] = [
 export default function Reflection() {
   useModeOnFocus('reflect');
   const { palette } = useTheme();
-  useLocalSearchParams<{ feeling?: string }>();
+  const { feeling } = useLocalSearchParams<{ feeling?: string }>();
   const endSession = useSessionStore((s) => s.end);
   const logTechnique = useSessionStore((s) => s.logTechnique);
+  // Empty My Head already offers to save thoughts as a journal entry, so we
+  // don't double up on the invitation here.
+  const offerJournal = feeling !== 'racing-thoughts';
 
   const [helped, setHelped] = useState<Session['helped'] | null>(null);
   const [whatHelped, setWhatHelped] = useState<string | null>(null);
@@ -93,6 +96,14 @@ export default function Reflection() {
         <Whisper center>{closingLine(helped)}</Whisper>
         <View style={styles.options}>
           <CalmButton label="Done" variant="primary" size="large" onPress={() => router.replace('/home')} style={{ width: '100%' }} />
+          {offerJournal && (
+            <CalmButton
+              label="Want to write down what's on your mind?"
+              variant="ghost"
+              onPress={() => router.replace('/journal/new')}
+              style={{ width: '100%' }}
+            />
+          )}
           {helped === 'worse' || helped === 'about-the-same' ? (
             <>
               <CalmButton label="Try something else" onPress={() => router.replace('/toolkit')} style={{ width: '100%' }} />

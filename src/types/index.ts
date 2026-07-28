@@ -104,6 +104,26 @@ export interface ThoughtEntry {
   createdAt: number;
 }
 
+export type Mood =
+  | 'calm'
+  | 'happy'
+  | 'okay'
+  | 'anxious'
+  | 'overwhelmed'
+  | 'sad'
+  | 'angry'
+  | 'numb'
+  | 'hopeful'
+  | 'tired';
+
+export interface JournalEntry {
+  id: string;
+  text: string;
+  createdAt: number;
+  updatedAt: number;
+  mood?: Mood;
+}
+
 export interface InsightSignal {
   techniqueUsageCount: Partial<Record<Technique, number>>;
   techniqueHelpfulCount: Partial<Record<Technique, number>>;

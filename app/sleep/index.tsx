@@ -125,7 +125,13 @@ export default function Sleep() {
           <View style={{ marginTop: spacing.xl, width: '100%' }}>
             <SoundPicker />
           </View>
-          <CalmButton label="I'm ready to rest" variant="primary" size="large" style={{ marginTop: spacing.xxl, width: '100%' }} onPress={finish} />
+          <CalmButton
+            label="Write about it"
+            variant="ghost"
+            style={{ marginTop: spacing.lg, width: '100%' }}
+            onPress={() => router.push('/journal/new')}
+          />
+          <CalmButton label="I'm ready to rest" variant="primary" size="large" style={{ marginTop: spacing.sm, width: '100%' }} onPress={finish} />
         </View>
       </Screen>
     );
