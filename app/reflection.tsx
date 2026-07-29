@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, TextInput } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Screen } from '@/components/Screen';
 import { Environment } from '@/components/environments/Environment';
 import { CalmButton } from '@/components/CalmButton';
-import { Whisper, Body } from '@/theme/Type';
+import { Whisper, Body, Caption } from '@/theme/Type';
 import { useTheme, useModeOnFocus } from '@/theme/ThemeProvider';
-import { spacing } from '@/theme/tokens';
+import { spacing, radii } from '@/theme/tokens';
+import { fonts } from '@/theme/useAppFonts';
 import { useSessionStore } from '@/store/useSessionStore';
+import { useMemoriesStore } from '@/store/useMemoriesStore';
 import { Session, Technique } from '@/types';
 
 const HELPED_OPTIONS: { label: string; value: Session['helped'] }[] = [
@@ -38,6 +40,18 @@ export default function Reflection() {
 
   const [helped, setHelped] = useState<Session['helped'] | null>(null);
   const [whatHelped, setWhatHelped] = useState<string | null>(null);
+  const [madeItOpen, setMadeItOpen] = useState(false);
+  const [madeItText, setMadeItText] = useState('');
+  const [madeItSaved, setMadeItSaved] = useState(false);
+  const addMemory = useMemoriesStore((s) => s.addText);
+  const wentWell = helped === 'much-better' || helped === 'a-little-better';
+
+  const saveMadeIt = () => {
+    const trimmed = madeItText.trim();
+    if (!trimmed) return;
+    addMemory(trimmed, 'made-it-through');
+    setMadeItSaved(true);
+  };
 
   const finish = (h: Session['helped'], w?: string) => {
     if (w && w !== 'time') logTechnique(w as Technique);
@@ -94,6 +108,37 @@ export default function Reflection() {
     <Screen center backdrop={<Environment id="sunset" warmth={0.85} />}>
       <Animated.View entering={FadeIn.duration(400)} style={styles.block}>
         <Whisper center>{closingLine(helped)}</Whisper>
+
+        {wentWell && !madeItOpen && !madeItSaved && (
+          <CalmButton
+            label="What would you want to remember about getting through this?"
+            variant="ghost"
+            style={{ marginTop: spacing.lg, width: '100%' }}
+            onPress={() => setMadeItOpen(true)}
+          />
+        )}
+
+        {wentWell && madeItOpen && !madeItSaved && (
+          <View style={[styles.madeItBox, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+            <TextInput
+              value={madeItText}
+              onChangeText={setMadeItText}
+              placeholder="I made it through by..."
+              placeholderTextColor={palette.textFaint}
+              style={[styles.madeItInput, { color: palette.text, fontFamily: fonts.body }]}
+              multiline
+              autoFocus
+            />
+            <CalmButton label="Save this" variant="primary" onPress={saveMadeIt} style={{ marginTop: spacing.sm, width: '100%' }} />
+          </View>
+        )}
+
+        {wentWell && madeItSaved && (
+          <Caption color={palette.textMuted} style={{ marginTop: spacing.md }}>
+            Saved. It'll be there for you later.
+          </Caption>
+        )}
+
         <View style={styles.options}>
           <CalmButton label="Done" variant="primary" size="large" onPress={() => router.replace('/home')} style={{ width: '100%' }} />
           {offerJournal && (
@@ -132,4 +177,6 @@ function closingLine(helped: Session['helped']) {
 const styles = StyleSheet.create({
   block: { alignItems: 'center', width: '100%', paddingHorizontal: spacing.md },
   options: { marginTop: spacing.xl, gap: 10, width: '100%' },
+  madeItBox: { marginTop: spacing.lg, width: '100%', padding: spacing.md, borderRadius: radii.md, borderWidth: 1 },
+  madeItInput: { fontSize: 16, minHeight: 80, textAlignVertical: 'top' },
 });

@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { localStorage } from './storage';
-import { Letter } from '@/types';
+import { Letter, LetterCategory } from '@/types';
 import { generateId } from '@/utils/id';
 
 interface LettersState {
   letters: Letter[];
-  add: (title: string, body: string) => void;
+  add: (title: string, body: string, category?: LetterCategory) => void;
   remove: (id: string) => void;
   markOpened: (id: string) => void;
 }
@@ -15,11 +15,11 @@ export const useLettersStore = create<LettersState>()(
   persist(
     (set) => ({
       letters: [],
-      add: (title, body) =>
+      add: (title, body, category = 'general') =>
         set((s) => ({
           letters: [
             ...s.letters,
-            { id: generateId(), title, body, createdAt: Date.now(), timesOpened: 0 },
+            { id: generateId(), title, body, createdAt: Date.now(), timesOpened: 0, category },
           ],
         })),
       remove: (id) => set((s) => ({ letters: s.letters.filter((l) => l.id !== id) })),

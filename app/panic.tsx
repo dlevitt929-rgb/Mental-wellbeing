@@ -28,6 +28,7 @@ import { useAudioExperience } from '@/hooks/useAudioExperience';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useCalmPlanStore } from '@/store/useCalmPlanStore';
 import { useLettersStore } from '@/store/useLettersStore';
+import { useMemoriesStore } from '@/store/useMemoriesStore';
 import { Feeling, BreathingPhase } from '@/types';
 
 type Stage = 'opening' | 'letter-offer' | 'letter-read' | 'questions' | PlanStep['kind'] | 'landing';
@@ -62,7 +63,14 @@ export default function Panic() {
 
   const letters = useLettersStore((s) => s.letters);
   const markLetterOpened = useLettersStore((s) => s.markOpened);
+  const memories = useMemoriesStore((s) => s.memories);
   const [chosenLetter, setChosenLetter] = useState<{ title: string; body: string } | null>(null);
+
+  const somethingLeft = useMemo(() => {
+    const panicLetters = letters.filter((l) => l.category === 'panic');
+    const textMemories = memories.filter((m) => m.kind === 'text' && m.text);
+    return { panicLetters, textMemories, any: letters.length > 0 || textMemories.length > 0 };
+  }, [letters, memories]);
 
   const calmPlanEntries = useCalmPlanStore((s) => s.entries);
   const calmPlanLine = useMemo(() => {
@@ -143,7 +151,7 @@ export default function Panic() {
             { text: 'Notice where your body is touching the chair or bed.', holdMs: 3400 },
           ]}
           onDone={() => {
-            if (letters.length > 0) {
+            if (somethingLeft.any) {
               setStage('letter-offer');
             } else {
               logStep('panic:questions');
@@ -163,9 +171,17 @@ export default function Panic() {
               size="large"
               style={{ width: '100%' }}
               onPress={() => {
-                const letter = letters[Math.floor(Math.random() * letters.length)];
-                markLetterOpened(letter.id);
-                setChosenLetter(letter);
+                const memoryItems = somethingLeft.textMemories.map((m) => ({
+                  title: 'A calm memory',
+                  body: m.text as string,
+                  id: null as string | null,
+                }));
+                const letterPool = somethingLeft.panicLetters.length > 0 ? somethingLeft.panicLetters : letters;
+                const letterItems = letterPool.map((l) => ({ title: l.title, body: l.body, id: l.id }));
+                const pool = [...letterItems, ...memoryItems];
+                const chosen = pool[Math.floor(Math.random() * pool.length)];
+                if (chosen.id) markLetterOpened(chosen.id);
+                setChosenLetter({ title: chosen.title, body: chosen.body });
                 setStage('letter-read');
               }}
             />

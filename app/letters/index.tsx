@@ -9,6 +9,14 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { spacing, radii } from '@/theme/tokens';
 import { fonts } from '@/theme/useAppFonts';
 import { useLettersStore } from '@/store/useLettersStore';
+import { LetterCategory } from '@/types';
+
+const CATEGORIES: { id: LetterCategory; label: string }[] = [
+  { id: 'general', label: 'Anytime' },
+  { id: 'panic', label: 'For panic' },
+  { id: 'sad', label: 'For sadness' },
+  { id: 'doubt', label: 'For self-doubt' },
+];
 
 export default function Letters() {
   const { palette } = useTheme();
@@ -20,12 +28,14 @@ export default function Letters() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [title, setTitle] = useState('From calm me');
   const [body, setBody] = useState('');
+  const [category, setCategory] = useState<LetterCategory>('general');
 
   const save = () => {
     if (!body.trim()) return;
-    add(title.trim() || 'From calm me', body.trim());
+    add(title.trim() || 'From calm me', body.trim(), category);
     setTitle('From calm me');
     setBody('');
+    setCategory('general');
     setWriting(false);
   };
 
@@ -68,6 +78,26 @@ export default function Letters() {
             style={[styles.bodyInput, { color: palette.text, fontFamily: fonts.body }]}
             multiline
           />
+          <Caption color={palette.textFaint} style={{ marginTop: spacing.md, marginBottom: 6 }}>
+            WHEN SHOULD THIS FIND YOU?
+          </Caption>
+          <View style={styles.categoryRow}>
+            {CATEGORIES.map((c) => {
+              const active = category === c.id;
+              return (
+                <Pressable
+                  key={c.id}
+                  onPress={() => setCategory(c.id)}
+                  style={[
+                    styles.categoryChip,
+                    { borderColor: active ? palette.accent : palette.border, backgroundColor: active ? palette.surfaceRaised : 'transparent' },
+                  ]}
+                >
+                  <Caption color={active ? palette.text : palette.textFaint}>{c.label}</Caption>
+                </Pressable>
+              );
+            })}
+          </View>
           <View style={{ flexDirection: 'row', gap: 10, marginTop: spacing.sm }}>
             <CalmButton label="Save" variant="primary" onPress={save} style={{ flex: 1 }} />
             <CalmButton label="Cancel" variant="ghost" onPress={() => setWriting(false)} style={{ flex: 1 }} />
@@ -90,7 +120,7 @@ export default function Letters() {
             <View style={{ flex: 1 }}>
               <Headline>{l.title}</Headline>
               <Caption color={palette.textFaint} style={{ marginTop: 2 }}>
-                Opened {l.timesOpened} time{l.timesOpened === 1 ? '' : 's'}
+                {CATEGORIES.find((c) => c.id === l.category)?.label ?? 'Anytime'} · Opened {l.timesOpened} time{l.timesOpened === 1 ? '' : 's'}
               </Caption>
             </View>
             <Pressable onPress={() => remove(l.id)}>
@@ -107,6 +137,8 @@ export default function Letters() {
 
 const styles = StyleSheet.create({
   form: { padding: spacing.md, borderRadius: radii.md, borderWidth: 1, marginBottom: spacing.lg },
+  categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  categoryChip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: radii.round, borderWidth: 1 },
   titleInput: { fontSize: 17, paddingVertical: 8 },
   bodyInput: { fontSize: 16, minHeight: 140, textAlignVertical: 'top', marginTop: 4 },
   card: { flexDirection: 'row', alignItems: 'center', padding: spacing.md, borderRadius: radii.md, borderWidth: 1, gap: 10 },

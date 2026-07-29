@@ -100,6 +100,7 @@ export default function Home() {
         <SecondaryLink label="Explore the toolkit" onPress={() => router.push('/toolkit')} />
         <SecondaryLink label="My Calm Plan" onPress={() => router.push('/calm-plan')} />
         <SecondaryLink label="A letter from calm you" onPress={() => router.push('/letters')} />
+        <SecondaryLink label="Calm memories" onPress={() => router.push('/memories')} />
         <SecondaryLink label="Settings & privacy" onPress={() => router.push('/settings')} />
       </View>
     </Screen>

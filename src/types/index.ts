@@ -86,12 +86,24 @@ export interface TrustedContact {
   helpsWithText: string; // e.g. "hearing your mom's voice usually helps"
 }
 
+export type LetterCategory = 'panic' | 'sad' | 'doubt' | 'general';
+
 export interface Letter {
   id: string;
   title: string;
   body: string;
   createdAt: number;
   timesOpened: number;
+  category?: LetterCategory;
+}
+
+export interface CalmMemory {
+  id: string;
+  kind: 'text' | 'voice';
+  text?: string;
+  audioUri?: string;
+  tag?: 'made-it-through' | 'general';
+  createdAt: number;
 }
 
 export interface WorryEntry {
