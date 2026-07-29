@@ -11,6 +11,8 @@ const TECHNIQUE_LABEL: Partial<Record<Technique, string>> = {
   'sensory-grounding': 'Sensory grounding',
   movement: 'Moving your body',
   'hold-to-breathe': 'Breathing at your own pace',
+  'follow-along': 'Letting something else lead for a while',
+  stillness: 'Sitting in stillness',
 };
 
 const MIN_SAMPLES = 3;

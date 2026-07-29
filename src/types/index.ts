@@ -27,6 +27,8 @@ export type Technique =
   | 'talking'
   | 'stay-with-me'
   | 'hold-to-breathe'
+  | 'follow-along'
+  | 'stillness'
   | 'time';
 
 export type BreathingTechniqueId =
