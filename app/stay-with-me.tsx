@@ -24,6 +24,47 @@ const REASSURANCE_BEATS = [
   { text: 'I’m not going anywhere.', holdMs: 3400 },
 ];
 
+const DISTRACT_BEATS = [
+  { text: 'Name three sounds you can hear right now.', holdMs: 4600 },
+  { text: 'Think of your favorite meal. What does it taste like?', holdMs: 4600 },
+  { text: 'Picture the color of the sky today.', holdMs: 4200 },
+  { text: 'Hum the first few notes of a song you like, even quietly.', holdMs: 4600 },
+  { text: 'What’s a word you’ve always liked the sound of?', holdMs: 4200 },
+];
+
+const UNDERSTAND_BEATS = [
+  { text: 'Your body is producing adrenaline right now. That’s the whole mechanism.', holdMs: 4800 },
+  { text: 'This feeling is uncomfortable. It isn’t dangerous.', holdMs: 4200 },
+  { text: 'Panic peaks, usually within minutes, and then it comes back down.', holdMs: 4600 },
+  { text: 'Nothing bad is happening because your heart is beating fast.', holdMs: 4400 },
+  { text: 'Your body is trying to protect you. It’s just a little overzealous right now.', holdMs: 4800 },
+];
+
+const JUST_STAY_BEATS = [
+  { text: 'I’m still here.', holdMs: 20000 },
+  { text: '', holdMs: 14000 },
+  { text: 'Still here.', holdMs: 24000 },
+  { text: '', holdMs: 14000 },
+  { text: 'Not going anywhere.', holdMs: 24000 },
+];
+
+type PresenceMode = 'quiet' | 'talk-through' | 'distract' | 'understand' | 'just-stay';
+
+const PRESENCE_MODES: { id: PresenceMode; label: string }[] = [
+  { id: 'quiet', label: 'Quiet presence' },
+  { id: 'talk-through', label: 'Talk me through this' },
+  { id: 'distract', label: 'Distract me' },
+  { id: 'understand', label: 'Help me understand' },
+  { id: 'just-stay', label: 'Just stay' },
+];
+
+const BEATS_FOR_MODE: Partial<Record<PresenceMode, typeof REASSURANCE_BEATS>> = {
+  quiet: REASSURANCE_BEATS,
+  distract: DISTRACT_BEATS,
+  understand: UNDERSTAND_BEATS,
+  'just-stay': JUST_STAY_BEATS,
+};
+
 interface ChatMessage {
   from: 'me' | 'ebb';
   text: string;
@@ -33,7 +74,7 @@ export default function StayWithMe() {
   useModeOnFocus('panic');
   const { palette } = useTheme();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
-  const [mode, setMode] = useState<'quiet' | 'talk'>(tab === 'talk' ? 'talk' : 'quiet');
+  const [mode, setMode] = useState<PresenceMode>(tab === 'talk' ? 'talk-through' : 'quiet');
   const start = useSessionStore((s) => s.start);
   const logTechnique = useSessionStore((s) => s.logTechnique);
   const endSession = useSessionStore((s) => s.end);
@@ -76,15 +117,16 @@ export default function StayWithMe() {
   };
 
   return (
-    <Screen padded={mode === 'talk'} backdrop={<Environment id="fire" warmth={0.55} />} overlay={<SessionSoundToggle />}>
+    <Screen padded={mode === 'talk-through'} backdrop={<Environment id="fire" warmth={0.55} />} overlay={<SessionSoundToggle />}>
       <View style={styles.tabs}>
-        <TabButton label="Stay quiet" active={mode === 'quiet'} onPress={() => setMode('quiet')} />
-        <TabButton label="Talk" active={mode === 'talk'} onPress={() => setMode('talk')} />
+        {PRESENCE_MODES.map((m) => (
+          <TabButton key={m.id} label={m.label} active={mode === m.id} onPress={() => setMode(m.id)} />
+        ))}
       </View>
 
-      {mode === 'quiet' ? (
+      {mode !== 'talk-through' ? (
         <View style={styles.center}>
-          <MessageBeat beats={REASSURANCE_BEATS} loop />
+          <MessageBeat beats={BEATS_FOR_MODE[mode] ?? REASSURANCE_BEATS} loop duckAmbience={mode !== 'just-stay'} />
           <CalmButton label="I feel a little better" variant="primary" onPress={finish} style={{ marginTop: spacing.xxl }} />
         </View>
       ) : (
@@ -137,7 +179,15 @@ function TabButton({ label, active, onPress }: { label: string; active: boolean;
 }
 
 const styles = StyleSheet.create({
-  tabs: { flexDirection: 'row', gap: 8, justifyContent: 'center', marginTop: spacing.sm, marginBottom: spacing.sm },
+  tabs: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'center',
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
   tab: { paddingVertical: 8, paddingHorizontal: 18, borderRadius: radii.round },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   chatWrap: { flex: 1 },

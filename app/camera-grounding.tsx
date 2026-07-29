@@ -17,6 +17,7 @@ export default function CameraGrounding() {
   const [permission, requestPermission] = useCameraPermissions();
   const [index, setIndex] = useState(0);
   const logTechnique = useSessionStore((s) => s.logTechnique);
+  const [challenges] = useState(() => [...CAMERA_CHALLENGES].sort(() => Math.random() - 0.5).slice(0, 8));
 
   if (!permission) return <Screen center>{null}</Screen>;
 
@@ -43,7 +44,7 @@ export default function CameraGrounding() {
   }
 
   const next = () => {
-    if (index < CAMERA_CHALLENGES.length - 1) {
+    if (index < challenges.length - 1) {
       setIndex((i) => i + 1);
     } else {
       logTechnique('sensory-grounding');
@@ -58,7 +59,7 @@ export default function CameraGrounding() {
         <BlurView intensity={50} tint="dark" style={styles.promptCard}>
           <Animated.View key={index} entering={FadeIn.duration(400)} exiting={FadeOut.duration(200)}>
             <Whisper center color="#fff">
-              {CAMERA_CHALLENGES[index]}
+              {challenges[index]}
             </Whisper>
           </Animated.View>
         </BlurView>

@@ -56,6 +56,7 @@ export default function GroundingToolkit() {
         <View style={{ marginTop: spacing.xl, gap: 10, width: '100%' }}>
           <CalmButton label="Guide me through it" variant="primary" size="large" style={{ width: '100%' }} onPress={() => setStage('sequence')} />
           <CalmButton label="Use my camera instead" style={{ width: '100%' }} onPress={() => router.push('/camera-grounding')} />
+          <CalmButton label="Dim the screen, look away instead" style={{ width: '100%' }} onPress={() => router.push('/come-back-to-the-room')} />
         </View>
       </View>
     </Screen>

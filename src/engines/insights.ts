@@ -13,6 +13,7 @@ const TECHNIQUE_LABEL: Partial<Record<Technique, string>> = {
   'hold-to-breathe': 'Breathing at your own pace',
   'follow-along': 'Letting something else lead for a while',
   stillness: 'Sitting in stillness',
+  'look-away-grounding': 'Looking away from the screen and into the room',
 };
 
 const MIN_SAMPLES = 3;

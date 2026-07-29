@@ -33,6 +33,11 @@ export const CAMERA_CHALLENGES: string[] = [
   'Find something you could hold in one hand.',
   'Find the brightest thing in the room.',
   'Find something that feels familiar.',
+  'Find something with a pattern.',
+  'Find something you haven’t touched today.',
+  'Find something taller than you.',
+  'Find something that makes a sound if you move it.',
+  'Find something that belongs to someone you love.',
 ];
 
 export const PHYSICAL_GROUNDING_STEPS: string[] = [
