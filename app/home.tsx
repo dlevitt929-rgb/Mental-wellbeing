@@ -49,6 +49,10 @@ export default function Home() {
 
       <HeroHelpButton />
 
+      <Pressable onPress={() => router.push('/one-minute')} style={styles.oneMinute}>
+        <Caption color={palette.textMuted}>Don't want to decide anything? Try One Minute With Me →</Caption>
+      </Pressable>
+
       {pendingWorries.length > 0 && (
         <View style={[styles.insightsBox, { borderColor: palette.border, backgroundColor: palette.surface, marginTop: spacing.lg }]}>
           <Caption color={palette.textFaint} style={{ marginBottom: 6 }}>
@@ -125,6 +129,7 @@ function SecondaryLink({ label, onPress }: { label: string; onPress: () => void 
 
 const styles = StyleSheet.create({
   header: { marginBottom: spacing.lg },
+  oneMinute: { marginTop: spacing.md, alignItems: 'center', paddingVertical: 6 },
   grid: { gap: 10, marginTop: spacing.lg },
   row: { flexDirection: 'row', gap: 10 },
   insightsBox: {

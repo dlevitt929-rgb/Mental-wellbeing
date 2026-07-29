@@ -23,7 +23,8 @@ import {
 import { CalmingPathSignals } from '@/engines/breathing';
 import { BREATHING_TECHNIQUES } from '@/engines/breathing';
 import { PHYSICAL_GROUNDING_STEPS, FIVE_SENSES_SEQUENCE } from '@/data/grounding';
-import { useSound } from '@/engines/SoundProvider';
+import { AudioManager } from '@/engines/audio/AudioManager';
+import { useAudioExperience } from '@/hooks/useAudioExperience';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useCalmPlanStore } from '@/store/useCalmPlanStore';
 import { useLettersStore } from '@/store/useLettersStore';
@@ -45,8 +46,6 @@ export default function Panic() {
   const start = useSessionStore((s) => s.start);
   const logStep = useSessionStore((s) => s.logStep);
   const logTechnique = useSessionStore((s) => s.logTechnique);
-  const sound = useSound();
-  const soundEnabled = useSettingsStore((s) => s.soundEnabled);
   const calmEnvironment = useSettingsStore((s) => s.calmEnvironment);
 
   const [stage, setStage] = useState<Stage>('opening');
@@ -77,20 +76,17 @@ export default function Panic() {
   useEffect(() => {
     start(feeling);
     logStep('panic:opening');
+    // Panic is a safety-critical entry point — it always wins over whatever
+    // audio any other screen left behind, immediately.
+    AudioManager.stopAll(250);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (stage === 'breathing' && soundEnabled) {
-      sound.play('brown', 0.28);
-    } else if (stage !== 'breathing') {
-      setBreathPhase(null);
-    }
-    return () => {
-      if (stage === 'breathing') sound.stop(1200);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (stage !== 'breathing') setBreathPhase(null);
   }, [stage]);
+
+  useAudioExperience(stage === 'breathing', 'brown', { volume: 0.28, label: 'panic:breathing' });
 
   const answerQuestion = (value: boolean | undefined) => {
     const q = CALMING_QUESTIONS[qIndex];
@@ -232,9 +228,12 @@ export default function Panic() {
             running
             onPhase={(phase) => {
               setBreathPhase(phase.key);
-              if (!soundEnabled) return;
-              const target = phase.key === 'exhale' || phase.key === 'holdEmpty' ? 0.16 : 0.32;
-              sound.duckTo(target, phase.seconds * 1000 * 0.8);
+              const ms = phase.seconds * 1000 * 0.8;
+              if (phase.key === 'exhale' || phase.key === 'holdEmpty') {
+                AudioManager.duckCurrent(0.4, ms);
+              } else {
+                AudioManager.unduckCurrent(ms);
+              }
             }}
             onComplete={() => {
               logTechnique('breathing');

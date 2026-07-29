@@ -17,6 +17,8 @@ export interface EnvironmentProps {
   phaseSeconds?: number;
   /** 0 = the session's starting mood, 1 = fully warmed/landed. Drives a cool→warm palette blend. */
   warmth?: number;
+  /** Bypasses breathPhase-derived intensity with a direct 0–1 value — for continuous, non-phase-based drivers like a press-and-hold gesture. */
+  intensityOverride?: number | null;
 }
 
 export const ENVIRONMENT_LABELS: Record<EnvironmentId, string> = {

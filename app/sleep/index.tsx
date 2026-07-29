@@ -18,7 +18,7 @@ import { useModeOnFocus } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/tokens';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
-import { useSound } from '@/engines/SoundProvider';
+import { useAudioExperience } from '@/hooks/useAudioExperience';
 import { soundForEnvironment } from '@/engines/soundEngine';
 import { BREATHING_TECHNIQUES } from '@/engines/breathing';
 import { BreathingPhase } from '@/types';
@@ -51,8 +51,6 @@ export default function Sleep() {
   const logTechnique = useSessionStore((s) => s.logTechnique);
   const endSession = useSessionStore((s) => s.end);
   const sleepEnvironment = useSettingsStore((s) => s.sleepEnvironment);
-  const soundEnabled = useSettingsStore((s) => s.soundEnabled);
-  const sound = useSound();
 
   const [reason, setReason] = useState<WokeReason | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
@@ -69,16 +67,10 @@ export default function Sleep() {
 
   // Ambient bed plays for the guided part of the session only; the "done" screen
   // hands full control to SoundPicker so the person can choose what to fall asleep to.
-  useEffect(() => {
-    if (reason && !done && soundEnabled) {
-      sound.play(soundForEnvironment(sleepEnvironment), 0.24);
-    }
-    if (done) sound.stop(1400);
-    return () => {
-      if (reason && !done) sound.stop(1000);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reason, done]);
+  useAudioExperience(Boolean(reason) && !done, reason ? soundForEnvironment(sleepEnvironment) : null, {
+    volume: 0.24,
+    label: 'sleep:guided',
+  });
 
   const sequence = reason ? SEQUENCES[reason] : [];
 

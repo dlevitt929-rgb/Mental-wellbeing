@@ -4,6 +4,7 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Whisper } from '@/theme/Type';
 import { useSettingsStore } from '@/store/useSettingsStore';
+import { AudioManager } from '@/engines/audio/AudioManager';
 
 interface Beat {
   text: string;
@@ -16,10 +17,13 @@ interface MessageBeatProps {
   loop?: boolean;
   gapMs?: number;
   paused?: boolean;
+  /** Gently lowers whatever ambient sound is playing for as long as this is on screen. Default on. */
+  duckAmbience?: boolean;
 }
 
-/** Reveals one reassuring line at a time, with a real pause between each — like someone speaking slowly beside you. */
-export function MessageBeat({ beats, onDone, loop, gapMs = 3200, paused }: MessageBeatProps) {
+/** Reveals one reassuring line at a time, with a real pause between each — like someone speaking slowly beside you.
+ *  An empty-text beat is a deliberate silence — nothing renders, the hold still counts down. */
+export function MessageBeat({ beats, onDone, loop, gapMs = 3200, paused, duckAmbience = true }: MessageBeatProps) {
   const [index, setIndex] = useState(0);
   const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -27,8 +31,15 @@ export function MessageBeat({ beats, onDone, loop, gapMs = 3200, paused }: Messa
   const normalized: Beat[] = beats.map((b) => (typeof b === 'string' ? { text: b } : b));
 
   useEffect(() => {
+    if (!duckAmbience) return;
+    AudioManager.duckCurrent(0.5, 400);
+    return () => AudioManager.unduckCurrent(400);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [duckAmbience]);
+
+  useEffect(() => {
     if (paused) return;
-    if (hapticsEnabled) Haptics.selectionAsync().catch(() => {});
+    if (hapticsEnabled && normalized[index]?.text) Haptics.selectionAsync().catch(() => {});
     const hold = normalized[index]?.holdMs ?? gapMs;
     timer.current = setTimeout(() => {
       if (index < normalized.length - 1) {
@@ -47,9 +58,11 @@ export function MessageBeat({ beats, onDone, loop, gapMs = 3200, paused }: Messa
 
   return (
     <View style={styles.wrap}>
-      <Animated.View key={index} entering={FadeIn.duration(600)} exiting={FadeOut.duration(400)}>
-        <Whisper center>{normalized[index]?.text}</Whisper>
-      </Animated.View>
+      {normalized[index]?.text ? (
+        <Animated.View key={index} entering={FadeIn.duration(600)} exiting={FadeOut.duration(400)}>
+          <Whisper center>{normalized[index]?.text}</Whisper>
+        </Animated.View>
+      ) : null}
     </View>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '@/components/Screen';
@@ -13,8 +13,7 @@ import { BREATHING_TECHNIQUES } from '@/engines/breathing';
 import { BreathingTechniqueId, BreathingPhase } from '@/types';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
-import { useSound } from '@/engines/SoundProvider';
-import { soundForEnvironment } from '@/engines/soundEngine';
+import { useSessionAmbience } from '@/hooks/useSessionAmbience';
 
 const ORDER: BreathingTechniqueId[] = ['paced', 'extended-exhale', 'box', 'diaphragmatic', 'physiological-sigh'];
 
@@ -26,16 +25,7 @@ export default function BreathingToolkit() {
   const [breathPhase, setBreathPhase] = useState<BreathingPhase['key'] | null>(null);
   const logTechnique = useSessionStore((s) => s.logTechnique);
   const calmEnvironment = useSettingsStore((s) => s.calmEnvironment);
-  const soundEnabled = useSettingsStore((s) => s.soundEnabled);
-  const sound = useSound();
-
-  useEffect(() => {
-    if (running && soundEnabled) sound.play(soundForEnvironment(calmEnvironment), 0.26);
-    return () => {
-      if (running) sound.stop(1000);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [running]);
+  useSessionAmbience(running, calmEnvironment, 0.26);
 
   const backdrop = <Environment id={calmEnvironment} breathPhase={running ? breathPhase : null} warmth={complete ? 0.5 : 0} />;
 

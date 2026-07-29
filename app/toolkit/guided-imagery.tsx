@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '@/components/Screen';
@@ -11,9 +11,7 @@ import { Title, Body, Whisper } from '@/theme/Type';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/tokens';
 import { useSessionStore } from '@/store/useSessionStore';
-import { useSettingsStore } from '@/store/useSettingsStore';
-import { useSound } from '@/engines/SoundProvider';
-import { soundForEnvironment } from '@/engines/soundEngine';
+import { useSessionAmbience } from '@/hooks/useSessionAmbience';
 import { EnvironmentId } from '@/components/environments/types';
 
 const SCRIPT = [
@@ -32,17 +30,7 @@ export default function GuidedImageryToolkit() {
   const [stage, setStage] = useState<'pick' | 'playing' | 'done'>('pick');
   const [place, setPlace] = useState<EnvironmentId>('ocean');
   const logTechnique = useSessionStore((s) => s.logTechnique);
-  const soundEnabled = useSettingsStore((s) => s.soundEnabled);
-  const sound = useSound();
-
-  useEffect(() => {
-    if (stage === 'playing' && soundEnabled) sound.play(soundForEnvironment(place), 0.28);
-    if (stage !== 'playing') sound.stop(1200);
-    return () => {
-      if (stage === 'playing') sound.stop(1000);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stage]);
+  useSessionAmbience(stage === 'playing', place, 0.28);
 
   if (stage === 'done') {
     return (

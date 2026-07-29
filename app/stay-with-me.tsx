@@ -10,8 +10,7 @@ import { CalmButton } from '@/components/CalmButton';
 import { Body, Caption } from '@/theme/Type';
 import { useTheme, useModeOnFocus } from '@/theme/ThemeProvider';
 import { spacing, radii } from '@/theme/tokens';
-import { useSound } from '@/engines/SoundProvider';
-import { useSettingsStore } from '@/store/useSettingsStore';
+import { useAudioExperience } from '@/hooks/useAudioExperience';
 import { useSessionStore } from '@/store/useSessionStore';
 import { companionRespond, OPENING_LINE } from '@/engines/aiCompanion';
 import { fonts } from '@/theme/useAppFonts';
@@ -35,8 +34,6 @@ export default function StayWithMe() {
   const { palette } = useTheme();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const [mode, setMode] = useState<'quiet' | 'talk'>(tab === 'talk' ? 'talk' : 'quiet');
-  const sound = useSound();
-  const soundEnabled = useSettingsStore((s) => s.soundEnabled);
   const start = useSessionStore((s) => s.start);
   const logTechnique = useSessionStore((s) => s.logTechnique);
   const endSession = useSessionStore((s) => s.end);
@@ -45,14 +42,14 @@ export default function StayWithMe() {
   const scrollRef = useRef<ScrollView>(null);
   const started = useRef(false);
 
+  useAudioExperience(true, 'fireplace', { volume: 0.2, label: 'stay-with-me' });
+
   useEffect(() => {
     if (!started.current) {
       start('alone');
       logTechnique('stay-with-me');
       started.current = true;
     }
-    if (soundEnabled) sound.play('fireplace', 0.2);
-    return () => sound.stop(1000);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -10,6 +10,7 @@ const TECHNIQUE_LABEL: Partial<Record<Technique, string>> = {
   'cognitive-defusion': 'Letting thoughts be "just thoughts"',
   'sensory-grounding': 'Sensory grounding',
   movement: 'Moving your body',
+  'hold-to-breathe': 'Breathing at your own pace',
 };
 
 const MIN_SAMPLES = 3;

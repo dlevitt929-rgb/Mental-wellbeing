@@ -31,8 +31,8 @@ interface Props extends EnvironmentProps {
 
 /** Full-bleed animated backdrop for a session. Swap `id` to change mood; feed
  * breathPhase/phaseSeconds to have it move with the person's breathing. */
-export function Environment({ id, breathPhase = null, warmth = 0 }: Props) {
-  const intensity = intensityForPhase(breathPhase);
+export function Environment({ id, breathPhase = null, warmth = 0, intensityOverride = null }: Props) {
+  const intensity = intensityOverride ?? intensityForPhase(breathPhase);
 
   const warmthStyle = useAnimatedStyle(() => ({
     opacity: withTiming(warmth * 0.35, { duration: 1800 }),
