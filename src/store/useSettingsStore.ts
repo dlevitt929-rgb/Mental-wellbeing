@@ -12,6 +12,7 @@ interface SettingsState {
   analyticsOptIn: boolean; // always false unless the user explicitly opts in; nothing is sent anywhere in this build regardless
   calmEnvironment: EnvironmentId;
   sleepEnvironment: EnvironmentId;
+  journalPatternHintsEnabled: boolean;
   setHasOnboarded: (v: boolean) => void;
   setName: (name: string) => void;
   setSoundEnabled: (v: boolean) => void;
@@ -20,6 +21,7 @@ interface SettingsState {
   setAnalyticsOptIn: (v: boolean) => void;
   setCalmEnvironment: (v: EnvironmentId) => void;
   setSleepEnvironment: (v: EnvironmentId) => void;
+  setJournalPatternHintsEnabled: (v: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -33,6 +35,7 @@ export const useSettingsStore = create<SettingsState>()(
       analyticsOptIn: false,
       calmEnvironment: 'abstract',
       sleepEnvironment: 'night',
+      journalPatternHintsEnabled: true,
       setHasOnboarded: (v) => set({ hasOnboarded: v }),
       setName: (name) => set({ name }),
       setSoundEnabled: (v) => set({ soundEnabled: v }),
@@ -41,6 +44,7 @@ export const useSettingsStore = create<SettingsState>()(
       setAnalyticsOptIn: (v) => set({ analyticsOptIn: v }),
       setCalmEnvironment: (v) => set({ calmEnvironment: v }),
       setSleepEnvironment: (v) => set({ sleepEnvironment: v }),
+      setJournalPatternHintsEnabled: (v) => set({ journalPatternHintsEnabled: v }),
     }),
     { name: 'ebb.settings', storage: localStorage },
   ),

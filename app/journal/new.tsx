@@ -16,6 +16,7 @@ import { useJournalStore } from '@/store/useJournalStore';
 import { useJournalGate } from '@/hooks/useJournalGate';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { MOODS } from '@/data/moods';
+import { WEATHER_BY_MOOD } from '@/data/weather';
 import { JOURNAL_PROMPTS } from '@/data/journalPrompts';
 import { Mood } from '@/types';
 
@@ -120,7 +121,7 @@ function JournalWriteScreen() {
 
       <View style={styles.footer}>
         <Caption color={palette.textFaint} style={{ marginBottom: spacing.sm }}>
-          How are you feeling right now? (optional)
+          What's the weather like in there right now? (optional)
         </Caption>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
           {MOODS.map((m) => {
@@ -140,7 +141,9 @@ function JournalWriteScreen() {
                   },
                 ]}
               >
-                <Caption color={active ? palette.text : palette.textMuted}>{m.label}</Caption>
+                <Caption color={active ? palette.text : palette.textMuted}>
+                  {WEATHER_BY_MOOD[m.id].glyph} {m.label}
+                </Caption>
               </Pressable>
             );
           })}

@@ -14,6 +14,7 @@ import { useContactsStore } from '@/store/useContactsStore';
 import { useLettersStore } from '@/store/useLettersStore';
 import { useWorryStore } from '@/store/useWorryStore';
 import { useJournalStore } from '@/store/useJournalStore';
+import { useMemoriesStore } from '@/store/useMemoriesStore';
 import { EnvironmentPicker } from '@/components/EnvironmentPicker';
 
 export default function Settings() {
@@ -24,6 +25,8 @@ export default function Settings() {
   const setSoundEnabled = useSettingsStore((s) => s.setSoundEnabled);
   const setHapticsEnabled = useSettingsStore((s) => s.setHapticsEnabled);
   const setNightReminderEnabled = useSettingsStore((s) => s.setNightReminderEnabled);
+  const journalPatternHintsEnabled = useSettingsStore((s) => s.journalPatternHintsEnabled);
+  const setJournalPatternHintsEnabled = useSettingsStore((s) => s.setJournalPatternHintsEnabled);
   const calmEnvironment = useSettingsStore((s) => s.calmEnvironment);
   const sleepEnvironment = useSettingsStore((s) => s.sleepEnvironment);
   const setCalmEnvironment = useSettingsStore((s) => s.setCalmEnvironment);
@@ -35,6 +38,7 @@ export default function Settings() {
   const lettersCount = useLettersStore((s) => s.letters.length);
   const worriesCount = useWorryStore((s) => s.worries.length);
   const journalCount = useJournalStore((s) => s.entries.length);
+  const memoriesCount = useMemoriesStore((s) => s.memories.length);
 
   const clearEverything = () => {
     Alert.alert(
@@ -52,6 +56,7 @@ export default function Settings() {
             useLettersStore.setState({ letters: [] });
             useWorryStore.setState({ worries: [] });
             useJournalStore.setState({ entries: [] });
+            useMemoriesStore.setState({ memories: [] });
           },
         },
       ],
@@ -70,6 +75,11 @@ export default function Settings() {
           value={nightReminderEnabled}
           onChange={setNightReminderEnabled}
         />
+        <ToggleRow
+          label="Gentle patterns in my journal"
+          value={journalPatternHintsEnabled}
+          onChange={setJournalPatternHintsEnabled}
+        />
       </Section>
 
       <Section title="Where would you rather be">
@@ -85,14 +95,14 @@ export default function Settings() {
 
       <Section title="Your privacy">
         <Body color={palette.textMuted}>
-          Everything you write in Ebb — sessions, letters, contacts, calm plan entries, worries —
-          is stored only on this device. Nothing is uploaded, sold, or shared with anyone,
-          including us.
+          Everything you write in Ebb — sessions, letters, contacts, calm plan entries, worries,
+          memories — is stored only on this device. Nothing is uploaded, sold, or shared with
+          anyone, including us.
         </Body>
         <Caption color={palette.textFaint} style={{ marginTop: spacing.sm }}>
           Currently stored: {sessions.length} sessions · {calmPlanCount} calm plan entries ·{' '}
           {contactsCount} contacts · {lettersCount} letters · {worriesCount} worries ·{' '}
-          {journalCount} journal entries
+          {journalCount} journal entries · {memoriesCount} calm memories
         </Caption>
         <Pressable onPress={() => router.push('/journal/privacy')} style={{ marginTop: spacing.sm }}>
           <Caption color={palette.accent}>Journal lock, export & privacy →</Caption>

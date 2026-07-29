@@ -20,10 +20,12 @@ import { useJournalStore } from '@/store/useJournalStore';
 import { useJournalGate } from '@/hooks/useJournalGate';
 import { formatShortTimestamp, dayKey } from '@/utils/formatDate';
 import { MOOD_BY_ID } from '@/data/moods';
+import { WEATHER_BY_MOOD } from '@/data/weather';
 import { JournalEntry } from '@/types';
 import { useNavigateWithWipe } from '@/engines/TransitionOverlay';
 import * as Haptics from 'expo-haptics';
 import { useSettingsStore } from '@/store/useSettingsStore';
+import { derivePatternHints } from '@/engines/journalPatterns';
 
 export default function JournalHome() {
   const unlocked = useJournalGate();
@@ -34,10 +36,15 @@ export default function JournalHome() {
 function JournalHomeContent() {
   const { palette } = useTheme();
   const entries = useJournalStore((s) => s.entries);
+  const patternHintsEnabled = useSettingsStore((s) => s.journalPatternHintsEnabled);
   const [query, setQuery] = useState('');
   const [dayFilter, setDayFilter] = useState<string | null>(null);
 
   const sorted = useMemo(() => [...entries].sort((a, b) => b.createdAt - a.createdAt), [entries]);
+  const patternHints = useMemo(
+    () => (patternHintsEnabled ? derivePatternHints(entries) : []),
+    [entries, patternHintsEnabled],
+  );
 
   const days = useMemo(() => {
     const seen = new Map<string, number>();
@@ -66,6 +73,16 @@ function JournalHomeContent() {
       </View>
 
       <WriteButton />
+
+      {patternHints.length > 0 && (
+        <View style={[styles.hintsBox, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+          {patternHints.map((line, i) => (
+            <Caption key={i} color={palette.textMuted} style={{ marginBottom: i === patternHints.length - 1 ? 0 : 6 }}>
+              {line}
+            </Caption>
+          ))}
+        </View>
+      )}
 
       {entries.length > 0 && (
         <>
@@ -168,8 +185,10 @@ function EntryCard({ entry }: { entry: JournalEntry }) {
       onPress={() => navigateWithWipe(ref, mood?.color ?? palette.surfaceRaised, `/journal/${entry.id}`)}
       style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-        {mood && <View style={[styles.dot, { backgroundColor: mood.color }]} />}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+        {mood && (
+          <Caption color={mood.color}>{WEATHER_BY_MOOD[entry.mood as keyof typeof WEATHER_BY_MOOD].glyph}</Caption>
+        )}
         <Caption color={palette.textFaint}>{formatShortTimestamp(entry.createdAt)}</Caption>
       </View>
       <Body numberOfLines={2}>{snippet}</Body>
@@ -214,7 +233,7 @@ const styles = StyleSheet.create({
   writeWrap: { borderRadius: radii.lg, overflow: 'hidden' },
   writeFill: { paddingVertical: spacing.md, alignItems: 'center' },
   card: { padding: spacing.md, borderRadius: radii.md, borderWidth: 1 },
-  dot: { width: 8, height: 8, borderRadius: 4 },
+  hintsBox: { marginTop: spacing.lg, padding: spacing.md, borderRadius: radii.md, borderWidth: 1 },
   lockLink: {
     position: 'absolute',
     top: spacing.lg,

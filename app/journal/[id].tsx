@@ -14,6 +14,7 @@ import { useJournalGate } from '@/hooks/useJournalGate';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { formatFullTimestamp } from '@/utils/formatDate';
 import { MOOD_BY_ID } from '@/data/moods';
+import { WEATHER_BY_MOOD } from '@/data/weather';
 
 export default function JournalEntryDetail() {
   const unlocked = useJournalGate();
@@ -70,9 +71,11 @@ function JournalEntryDetailContent() {
     >
       <View style={{ marginTop: spacing.xxl, marginBottom: spacing.lg }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          {mood && (
+          {mood && entry.mood && (
             <View style={[styles.moodPill, { backgroundColor: hexToRgba(mood.color, 0.18), borderColor: mood.color }]}>
-              <Caption color={palette.text}>{mood.label}</Caption>
+              <Caption color={palette.text}>
+                {WEATHER_BY_MOOD[entry.mood].glyph} {WEATHER_BY_MOOD[entry.mood].label}
+              </Caption>
             </View>
           )}
           <Caption color={palette.textFaint}>{formatFullTimestamp(entry.createdAt)}</Caption>

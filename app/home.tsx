@@ -86,13 +86,15 @@ export default function Home() {
       </View>
 
       {insights.length > 0 && (
-        <View style={[styles.insightsBox, { borderColor: palette.border, backgroundColor: palette.surface }]}>
-          {insights.map((line, i) => (
-            <Caption key={i} color={palette.textMuted} style={{ marginBottom: i === insights.length - 1 ? 0 : 6 }}>
-              {line}
-            </Caption>
-          ))}
-        </View>
+        <Pressable
+          onPress={() => router.push('/things-that-help')}
+          style={[styles.insightsBox, { borderColor: palette.border, backgroundColor: palette.surface }]}
+        >
+          <Caption color={palette.textMuted}>{insights[0]}</Caption>
+          <Caption color={palette.accent} style={{ marginTop: 4 }}>
+            See what helps you →
+          </Caption>
+        </Pressable>
       )}
 
       <View style={styles.secondary}>
