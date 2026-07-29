@@ -30,6 +30,7 @@ export type Technique =
   | 'follow-along'
   | 'stillness'
   | 'look-away-grounding'
+  | 'put-it-down'
   | 'time';
 
 export type BreathingTechniqueId =

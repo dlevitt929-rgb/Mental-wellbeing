@@ -16,6 +16,7 @@ export const TOOLKIT_ITEMS: ToolkitItem[] = [
   { id: 'follow-along', title: "Don't think, just follow", blurb: 'A sequence that leads itself. You don’t have to choose anything.', minutes: '4–6 min', route: '/dont-think-just-follow', glyph: '→', color: '#7C93C3' },
   { id: 'stillness', title: 'Nothing to do', blurb: 'No timer, no steps, no finishing. Just somewhere to sit.', minutes: 'No timer', route: '/nothing-to-do', glyph: '○', color: '#5C6C8A' },
   { id: 'look-away-grounding', title: 'Come back to the room', blurb: 'The screen dims on purpose. A tap tells you when to look back.', minutes: '2–3 min', route: '/come-back-to-the-room', glyph: '◐', color: '#6FA37C' },
+  { id: 'put-it-down', title: 'Put it down', blurb: 'Write it, then drag it into the drawer. Set aside, not deleted.', minutes: '1–2 min', route: '/put-it-down', glyph: '▭', color: '#D98E63' },
   { id: 'grounding', title: 'Grounding', blurb: 'Bring your attention back to the room around you.', minutes: '2–3 min', route: '/toolkit/grounding', glyph: '⬡', color: '#6FA37C' },
   { id: 'pmr', title: 'Progressive muscle relaxation', blurb: 'Tense and release, one part of your body at a time.', minutes: '4–6 min', route: '/toolkit/pmr', glyph: '◌', color: '#8E7CC3' },
   { id: 'body-scan', title: 'Body scan', blurb: 'A slow, gentle pass through how your body feels.', minutes: '4–6 min', route: '/toolkit/body-scan', glyph: '◍', color: '#7C93C3' },
