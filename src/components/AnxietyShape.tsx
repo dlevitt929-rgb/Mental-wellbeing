@@ -8,6 +8,7 @@ import Animated, {
   withRepeat,
 } from 'react-native-reanimated';
 import { useTheme } from '@/theme/ThemeProvider';
+import { useCalmMotion } from '@/hooks/useCalmMotion';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const { width } = Dimensions.get('window');
@@ -41,6 +42,7 @@ interface AnxietyShapeProps {
 
 export function AnxietyShape({ intensity, animateSettle }: AnxietyShapeProps) {
   const { palette } = useTheme();
+  const { reduced } = useCalmMotion();
   const progress = useSharedValue(intensity);
   const rotation = useSharedValue(0);
 
@@ -54,8 +56,9 @@ export function AnxietyShape({ intensity, animateSettle }: AnxietyShapeProps) {
   }, [intensity, animateSettle, progress]);
 
   React.useEffect(() => {
+    if (reduced) return;
     rotation.value = withRepeat(withTiming(Math.PI * 2, { duration: 26000 }), -1, false);
-  }, [rotation]);
+  }, [rotation, reduced]);
 
   const animatedProps = useAnimatedProps(() => {
     const baseRadius = 46 + progress.value * 74;

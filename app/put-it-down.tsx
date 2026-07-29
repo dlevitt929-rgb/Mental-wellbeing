@@ -157,13 +157,18 @@ function DragCard({ text, onSetAside }: { text: string; onSetAside: (text: strin
   return (
     <View style={styles.dragArea}>
       <Body color={palette.textMuted} center style={{ marginBottom: spacing.lg }}>
-        Drag it down into the drawer.
+        Drag it down into the drawer, or just tap the button below.
       </Body>
       <GestureDetector gesture={pan}>
-        <Animated.View entering={FadeIn.duration(400)} style={[styles.card, cardStyle, { backgroundColor: palette.surfaceRaised, borderColor: palette.border }]}>
+        <Animated.View
+          entering={FadeIn.duration(400)}
+          style={[styles.card, cardStyle, { backgroundColor: palette.surfaceRaised, borderColor: palette.border }]}
+          accessibilityLabel={`${text}. Drag down to set aside, or use the button below.`}
+        >
           <Body center>{text}</Body>
         </Animated.View>
       </GestureDetector>
+      <CalmButton label="Set it aside" variant="primary" style={{ marginTop: spacing.xl, width: '100%' }} onPress={finishDrop} />
     </View>
   );
 }
