@@ -41,6 +41,10 @@ function JournalHomeContent() {
   const [dayFilter, setDayFilter] = useState<string | null>(null);
 
   const sorted = useMemo(() => [...entries].sort((a, b) => b.createdAt - a.createdAt), [entries]);
+  const weatherStrip = useMemo(
+    () => [...sorted].filter((e) => e.mood).slice(0, 7).reverse(),
+    [sorted],
+  );
   const patternHints = useMemo(
     () => (patternHintsEnabled ? derivePatternHints(entries) : []),
     [entries, patternHintsEnabled],
@@ -71,6 +75,20 @@ function JournalHomeContent() {
           A private place to put things down, just for you.
         </Body>
       </View>
+
+      {weatherStrip.length >= 3 && (
+        <View style={styles.weatherStrip}>
+          {weatherStrip.map((e) => {
+            const w = WEATHER_BY_MOOD[e.mood as keyof typeof WEATHER_BY_MOOD];
+            const color = MOOD_BY_ID[e.mood as keyof typeof MOOD_BY_ID].color;
+            return (
+              <View key={e.id} style={styles.weatherDay}>
+                <Caption color={color}>{w.glyph}</Caption>
+              </View>
+            );
+          })}
+        </View>
+      )}
 
       <WriteButton />
 
@@ -234,6 +252,8 @@ const styles = StyleSheet.create({
   writeFill: { paddingVertical: spacing.md, alignItems: 'center' },
   card: { padding: spacing.md, borderRadius: radii.md, borderWidth: 1 },
   hintsBox: { marginTop: spacing.lg, padding: spacing.md, borderRadius: radii.md, borderWidth: 1 },
+  weatherStrip: { flexDirection: 'row', gap: 10, marginTop: spacing.md, alignItems: 'center' },
+  weatherDay: { alignItems: 'center', justifyContent: 'center' },
   lockLink: {
     position: 'absolute',
     top: spacing.lg,

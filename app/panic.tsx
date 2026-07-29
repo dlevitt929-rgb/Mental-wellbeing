@@ -67,9 +67,10 @@ export default function Panic() {
   const [chosenLetter, setChosenLetter] = useState<{ title: string; body: string } | null>(null);
 
   const somethingLeft = useMemo(() => {
-    const panicLetters = letters.filter((l) => l.category === 'panic');
+    const availableLetters = letters.filter((l) => !l.scheduledFor || l.scheduledFor <= Date.now());
+    const panicLetters = availableLetters.filter((l) => l.category === 'panic');
     const textMemories = memories.filter((m) => m.kind === 'text' && m.text);
-    return { panicLetters, textMemories, any: letters.length > 0 || textMemories.length > 0 };
+    return { availableLetters, panicLetters, textMemories, any: availableLetters.length > 0 || textMemories.length > 0 };
   }, [letters, memories]);
 
   const calmPlanEntries = useCalmPlanStore((s) => s.entries);
@@ -176,7 +177,7 @@ export default function Panic() {
                   body: m.text as string,
                   id: null as string | null,
                 }));
-                const letterPool = somethingLeft.panicLetters.length > 0 ? somethingLeft.panicLetters : letters;
+                const letterPool = somethingLeft.panicLetters.length > 0 ? somethingLeft.panicLetters : somethingLeft.availableLetters;
                 const letterItems = letterPool.map((l) => ({ title: l.title, body: l.body, id: l.id }));
                 const pool = [...letterItems, ...memoryItems];
                 const chosen = pool[Math.floor(Math.random() * pool.length)];

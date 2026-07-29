@@ -10,6 +10,7 @@ import { spacing, radii } from '@/theme/tokens';
 import { fonts } from '@/theme/useAppFonts';
 import { useLettersStore } from '@/store/useLettersStore';
 import { LetterCategory } from '@/types';
+import { formatFullTimestamp } from '@/utils/formatDate';
 
 const CATEGORIES: { id: LetterCategory; label: string }[] = [
   { id: 'general', label: 'Anytime' },
@@ -17,6 +18,18 @@ const CATEGORIES: { id: LetterCategory; label: string }[] = [
   { id: 'sad', label: 'For sadness' },
   { id: 'doubt', label: 'For self-doubt' },
 ];
+
+const DELAYS: { label: string; days: number | null }[] = [
+  { label: 'Now', days: null },
+  { label: 'In a week', days: 7 },
+  { label: 'In a month', days: 30 },
+  { label: 'In 3 months', days: 90 },
+  { label: 'In a year', days: 365 },
+];
+
+function isLocked(l: { scheduledFor?: number }) {
+  return Boolean(l.scheduledFor && l.scheduledFor > Date.now());
+}
 
 export default function Letters() {
   const { palette } = useTheme();
@@ -29,13 +42,16 @@ export default function Letters() {
   const [title, setTitle] = useState('From calm me');
   const [body, setBody] = useState('');
   const [category, setCategory] = useState<LetterCategory>('general');
+  const [delayDays, setDelayDays] = useState<number | null>(null);
 
   const save = () => {
     if (!body.trim()) return;
-    add(title.trim() || 'From calm me', body.trim(), category);
+    const scheduledFor = delayDays ? Date.now() + delayDays * 24 * 60 * 60 * 1000 : undefined;
+    add(title.trim() || 'From calm me', body.trim(), category, scheduledFor);
     setTitle('From calm me');
     setBody('');
     setCategory('general');
+    setDelayDays(null);
     setWriting(false);
   };
 
@@ -98,6 +114,26 @@ export default function Letters() {
               );
             })}
           </View>
+          <Caption color={palette.textFaint} style={{ marginTop: spacing.md, marginBottom: 6 }}>
+            WHEN SHOULD THIS ARRIVE?
+          </Caption>
+          <View style={styles.categoryRow}>
+            {DELAYS.map((d) => {
+              const active = delayDays === d.days;
+              return (
+                <Pressable
+                  key={d.label}
+                  onPress={() => setDelayDays(d.days)}
+                  style={[
+                    styles.categoryChip,
+                    { borderColor: active ? palette.accent : palette.border, backgroundColor: active ? palette.surfaceRaised : 'transparent' },
+                  ]}
+                >
+                  <Caption color={active ? palette.text : palette.textFaint}>{d.label}</Caption>
+                </Pressable>
+              );
+            })}
+          </View>
           <View style={{ flexDirection: 'row', gap: 10, marginTop: spacing.sm }}>
             <CalmButton label="Save" variant="primary" onPress={save} style={{ flex: 1 }} />
             <CalmButton label="Cancel" variant="ghost" onPress={() => setWriting(false)} style={{ flex: 1 }} />
@@ -108,26 +144,32 @@ export default function Letters() {
       )}
 
       <View style={{ gap: 10 }}>
-        {letters.map((l) => (
-          <Pressable
-            key={l.id}
-            onPress={() => {
-              markOpened(l.id);
-              setOpenId(l.id);
-            }}
-            style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}
-          >
-            <View style={{ flex: 1 }}>
-              <Headline>{l.title}</Headline>
-              <Caption color={palette.textFaint} style={{ marginTop: 2 }}>
-                {CATEGORIES.find((c) => c.id === l.category)?.label ?? 'Anytime'} · Opened {l.timesOpened} time{l.timesOpened === 1 ? '' : 's'}
-              </Caption>
-            </View>
-            <Pressable onPress={() => remove(l.id)}>
-              <Caption color={palette.danger}>Remove</Caption>
+        {letters.map((l) => {
+          const locked = isLocked(l);
+          return (
+            <Pressable
+              key={l.id}
+              disabled={locked}
+              onPress={() => {
+                markOpened(l.id);
+                setOpenId(l.id);
+              }}
+              style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border, opacity: locked ? 0.6 : 1 }]}
+            >
+              <View style={{ flex: 1 }}>
+                <Headline>{locked ? 'A letter, waiting' : l.title}</Headline>
+                <Caption color={palette.textFaint} style={{ marginTop: 2 }}>
+                  {locked
+                    ? `Arrives ${formatFullTimestamp(l.scheduledFor as number)}`
+                    : `${CATEGORIES.find((c) => c.id === l.category)?.label ?? 'Anytime'} · Opened ${l.timesOpened} time${l.timesOpened === 1 ? '' : 's'}`}
+                </Caption>
+              </View>
+              <Pressable onPress={() => remove(l.id)}>
+                <Caption color={palette.danger}>Remove</Caption>
+              </Pressable>
             </Pressable>
-          </Pressable>
-        ))}
+          );
+        })}
       </View>
 
       <CalmButton label="Back" variant="ghost" style={{ marginTop: spacing.xl }} onPress={() => router.back()} />

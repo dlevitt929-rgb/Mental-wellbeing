@@ -95,6 +95,8 @@ export interface Letter {
   createdAt: number;
   timesOpened: number;
   category?: LetterCategory;
+  /** If set and in the future, this letter is locked until that date — a message to a specific future you. */
+  scheduledFor?: number;
 }
 
 export interface CalmMemory {
