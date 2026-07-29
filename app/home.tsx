@@ -12,6 +12,7 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useWorryStore, selectPendingFromBefore } from '@/store/useWorryStore';
 import { deriveInsights } from '@/engines/insights';
+import { pickRightNowSuggestion, timeContext } from '@/engines/rightNow';
 
 interface TileDef {
   label: string;
@@ -39,6 +40,7 @@ export default function Home() {
   const worries = useWorryStore((s) => s.worries);
   const pendingWorries = useMemo(() => selectPendingFromBefore(worries), [worries]);
   const resolveWorry = useWorryStore((s) => s.resolve);
+  const rightNow = useMemo(() => pickRightNowSuggestion(sessions), [sessions]);
 
   return (
     <Screen scroll>
@@ -49,8 +51,8 @@ export default function Home() {
 
       <HeroHelpButton />
 
-      <Pressable onPress={() => router.push('/one-minute')} style={styles.oneMinute}>
-        <Caption color={palette.textMuted}>Don't want to decide anything? Try One Minute With Me →</Caption>
+      <Pressable onPress={() => router.push(rightNow.route)} style={styles.oneMinute}>
+        <Caption color={palette.textMuted}>{rightNow.label}</Caption>
       </Pressable>
 
       {pendingWorries.length > 0 && (
@@ -111,11 +113,17 @@ function chunk<T>(arr: T[], size: number): T[][] {
 }
 
 function greeting() {
-  const h = new Date().getHours();
-  if (h < 5) return 'It’s late';
-  if (h < 12) return 'Good morning';
-  if (h < 18) return 'Good afternoon';
-  return 'Good evening';
+  switch (timeContext()) {
+    case 'late-night':
+      return 'Still awake?';
+    case 'morning':
+      return 'Good morning';
+    case 'afternoon':
+      return 'Good afternoon';
+    case 'evening':
+    default:
+      return 'Good evening';
+  }
 }
 
 function SecondaryLink({ label, onPress }: { label: string; onPress: () => void }) {

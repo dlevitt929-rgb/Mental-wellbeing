@@ -17,15 +17,14 @@ const TECHNIQUE_LABEL: Partial<Record<Technique, string>> = {
 };
 
 const MIN_SAMPLES = 3;
+const HELPFUL_RATIO = 0.6;
 
-/**
- * Careful on purpose: these are gentle, first-person observations from the
- * person's own history — never a diagnosis, never a score.
- */
-export function deriveInsights(sessions: Session[]): string[] {
-  const finished = sessions.filter((s) => s.endedAt);
-  if (finished.length < MIN_SAMPLES) return [];
+interface RankedTechnique {
+  t: Technique;
+  ratio: number;
+}
 
+function rankTechniques(finished: Session[]): RankedTechnique[] {
   const usage: Partial<Record<Technique, number>> = {};
   const helpful: Partial<Record<Technique, number>> = {};
 
@@ -37,14 +36,32 @@ export function deriveInsights(sessions: Session[]): string[] {
     }
   }
 
-  const ranked = (Object.keys(usage) as Technique[])
+  return (Object.keys(usage) as Technique[])
     .filter((t) => (usage[t] ?? 0) >= MIN_SAMPLES && TECHNIQUE_LABEL[t])
     .map((t) => ({ t, ratio: (helpful[t] ?? 0) / (usage[t] ?? 1) }))
     .sort((a, b) => b.ratio - a.ratio);
+}
 
+/** The technique with the best track record, if there's enough history to be confident about it — for the "let's start with what helped you last time" nudge. */
+export function getTopTechnique(sessions: Session[]): Technique | null {
+  const finished = sessions.filter((s) => s.endedAt);
+  const ranked = rankTechniques(finished);
+  if (ranked[0] && ranked[0].ratio >= HELPFUL_RATIO) return ranked[0].t;
+  return null;
+}
+
+/**
+ * Careful on purpose: these are gentle, first-person observations from the
+ * person's own history — never a diagnosis, never a score.
+ */
+export function deriveInsights(sessions: Session[]): string[] {
+  const finished = sessions.filter((s) => s.endedAt);
+  if (finished.length < MIN_SAMPLES) return [];
+
+  const ranked = rankTechniques(finished);
   const insights: string[] = [];
 
-  if (ranked[0] && ranked[0].ratio >= 0.6) {
+  if (ranked[0] && ranked[0].ratio >= HELPFUL_RATIO) {
     insights.push(`${TECHNIQUE_LABEL[ranked[0].t]} tends to help you.`);
   }
 
