@@ -4,13 +4,16 @@ import Svg, { Path, Line } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { useSettingsStore } from '@/store/useSettingsStore';
+import { useTheme } from '@/theme/ThemeProvider';
 import { spacing, radii } from '@/theme/tokens';
 
 /** Small, unobtrusive mute toggle — only ever shown while a session's ambient sound is active. */
 export function SessionSoundToggle() {
+  const { scheme } = useTheme();
   const soundEnabled = useSettingsStore((s) => s.soundEnabled);
   const setSoundEnabled = useSettingsStore((s) => s.setSoundEnabled);
   const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
+  const iconColor = scheme === 'light' ? '#2E2A22' : '#F3F1EC';
 
   return (
     <Pressable
@@ -21,20 +24,20 @@ export function SessionSoundToggle() {
       }}
       hitSlop={12}
     >
-      <BlurView intensity={35} tint="dark" style={styles.pill}>
+      <BlurView intensity={35} tint={scheme === 'light' ? 'light' : 'dark'} style={styles.pill}>
         <Svg width={16} height={16} viewBox="0 0 24 24">
-          <Path d="M4 9v6h4l5 5V4L8 9H4z" fill="#F3F1EC" opacity={0.9} />
+          <Path d="M4 9v6h4l5 5V4L8 9H4z" fill={iconColor} opacity={0.9} />
           {soundEnabled ? (
             <Path
               d="M16.5 8.5a5 5 0 0 1 0 7"
-              stroke="#F3F1EC"
+              stroke={iconColor}
               strokeWidth={1.6}
               strokeLinecap="round"
               fill="none"
               opacity={0.75}
             />
           ) : (
-            <Line x1={17} y1={7} x2={22} y2={17} stroke="#F3F1EC" strokeWidth={1.6} strokeLinecap="round" opacity={0.85} />
+            <Line x1={17} y1={7} x2={22} y2={17} stroke={iconColor} strokeWidth={1.6} strokeLinecap="round" opacity={0.85} />
           )}
         </Svg>
       </BlurView>

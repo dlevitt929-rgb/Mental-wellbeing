@@ -11,7 +11,7 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 
 /** Always one tap away, on every non-emergency screen. */
 export function FloatingHelpButton() {
-  const { palette } = useTheme();
+  const { palette, scheme } = useTheme();
   const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
   const scale = useSharedValue(1);
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -30,7 +30,7 @@ export function FloatingHelpButton() {
           router.push('/panic');
         }}
       >
-        <BlurView intensity={40} tint="dark" style={[styles.pill, { borderColor: palette.border }]}>
+        <BlurView intensity={40} tint={scheme === 'light' ? 'light' : 'dark'} style={[styles.pill, { borderColor: palette.border }]}>
           <Caption color={palette.text}>I need help right now</Caption>
         </BlurView>
       </Pressable>

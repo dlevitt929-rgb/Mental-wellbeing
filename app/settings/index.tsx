@@ -16,9 +16,18 @@ import { useWorryStore } from '@/store/useWorryStore';
 import { useJournalStore } from '@/store/useJournalStore';
 import { useMemoriesStore } from '@/store/useMemoriesStore';
 import { EnvironmentPicker } from '@/components/EnvironmentPicker';
+import { Appearance } from '@/store/useSettingsStore';
+
+const APPEARANCE_OPTIONS: { id: Appearance; label: string }[] = [
+  { id: 'light', label: 'Light' },
+  { id: 'dark', label: 'Dark' },
+  { id: 'system', label: 'Follow System' },
+];
 
 export default function Settings() {
   const { palette } = useTheme();
+  const appearance = useSettingsStore((s) => s.appearance);
+  const setAppearance = useSettingsStore((s) => s.setAppearance);
   const soundEnabled = useSettingsStore((s) => s.soundEnabled);
   const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
   const nightReminderEnabled = useSettingsStore((s) => s.nightReminderEnabled);
@@ -66,6 +75,29 @@ export default function Settings() {
   return (
     <Screen scroll overlay={<FloatingHelpButton />}>
       <Title style={{ marginTop: spacing.lg }}>Settings & privacy</Title>
+
+      <Section title="Appearance">
+        <Body color={palette.textMuted} style={{ marginBottom: spacing.sm }}>
+          Choose how Ebb looks. Your choice applies everywhere, right away.
+        </Body>
+        <View style={styles.appearanceRow}>
+          {APPEARANCE_OPTIONS.map((opt) => {
+            const active = appearance === opt.id;
+            return (
+              <Pressable
+                key={opt.id}
+                onPress={() => setAppearance(opt.id)}
+                style={[
+                  styles.appearanceChip,
+                  { borderColor: active ? palette.accent : palette.border, backgroundColor: active ? palette.surfaceRaised : 'transparent' },
+                ]}
+              >
+                <Body color={active ? palette.text : palette.textMuted}>{opt.label}</Body>
+              </Pressable>
+            );
+          })}
+        </View>
+      </Section>
 
       <Section title="Preferences">
         <ToggleRow label="Sound" value={soundEnabled} onChange={setSoundEnabled} />
@@ -146,4 +178,6 @@ function ToggleRow({ label, value, onChange }: { label: string; value: boolean; 
 const styles = StyleSheet.create({
   section: { marginTop: spacing.xl, padding: spacing.md, borderRadius: radii.md, borderWidth: 1 },
   toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
+  appearanceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  appearanceChip: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: radii.round, borderWidth: 1 },
 });

@@ -3,9 +3,12 @@ import { persist } from 'zustand/middleware';
 import { localStorage } from './storage';
 import { EnvironmentId } from '@/components/environments/types';
 
+export type Appearance = 'light' | 'dark' | 'system';
+
 interface SettingsState {
   hasOnboarded: boolean;
   name: string;
+  appearance: Appearance;
   soundEnabled: boolean;
   hapticsEnabled: boolean;
   nightReminderEnabled: boolean;
@@ -15,6 +18,7 @@ interface SettingsState {
   journalPatternHintsEnabled: boolean;
   setHasOnboarded: (v: boolean) => void;
   setName: (name: string) => void;
+  setAppearance: (v: Appearance) => void;
   setSoundEnabled: (v: boolean) => void;
   setHapticsEnabled: (v: boolean) => void;
   setNightReminderEnabled: (v: boolean) => void;
@@ -29,6 +33,7 @@ export const useSettingsStore = create<SettingsState>()(
     (set) => ({
       hasOnboarded: false,
       name: '',
+      appearance: 'dark',
       soundEnabled: true,
       hapticsEnabled: true,
       nightReminderEnabled: true,
@@ -38,6 +43,7 @@ export const useSettingsStore = create<SettingsState>()(
       journalPatternHintsEnabled: true,
       setHasOnboarded: (v) => set({ hasOnboarded: v }),
       setName: (name) => set({ name }),
+      setAppearance: (v) => set({ appearance: v }),
       setSoundEnabled: (v) => set({ soundEnabled: v }),
       setHapticsEnabled: (v) => set({ hapticsEnabled: v }),
       setNightReminderEnabled: (v) => set({ nightReminderEnabled: v }),

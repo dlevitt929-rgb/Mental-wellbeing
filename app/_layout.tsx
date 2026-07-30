@@ -5,7 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
 import { StatusBar } from 'expo-status-bar';
-import { ThemeProvider } from '@/theme/ThemeProvider';
+import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 import { AudioProvider } from '@/engines/audio/AudioProvider';
 import { TransitionOverlayProvider } from '@/engines/TransitionOverlay';
 import { useAppFonts } from '@/theme/useAppFonts';
@@ -27,16 +27,32 @@ export default function RootLayout() {
       <ThemeProvider>
         <AudioProvider />
         <TransitionOverlayProvider>
-          <StatusBar style="light" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              animation: 'fade',
-              contentStyle: { backgroundColor: '#0B0F14' },
-            }}
-          />
+          <AppChrome />
         </TransitionOverlayProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
+  );
+}
+
+/** Keeps the OS chrome (status bar, system background behind the safe area,
+ *  route transition backdrop) in sync with the active light/dark scheme. */
+function AppChrome() {
+  const { palette, scheme } = useTheme();
+
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(palette.bg).catch(() => {});
+  }, [palette.bg]);
+
+  return (
+    <>
+      <StatusBar style={scheme === 'light' ? 'dark' : 'light'} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: 'fade',
+          contentStyle: { backgroundColor: palette.bg },
+        }}
+      />
+    </>
   );
 }

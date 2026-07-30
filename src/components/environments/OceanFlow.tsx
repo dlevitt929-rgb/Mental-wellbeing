@@ -11,6 +11,7 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 interface OceanFlowProps {
   breathIntensity?: number;
+  scheme?: 'light' | 'dark';
 }
 
 function wavePath(phase: number, baseY: number, amp: number): string {
@@ -27,14 +28,18 @@ function wavePath(phase: number, baseY: number, amp: number): string {
   return d;
 }
 
-export function OceanFlow({ breathIntensity = 0.4 }: OceanFlowProps) {
+export function OceanFlow({ breathIntensity = 0.4, scheme = 'dark' }: OceanFlowProps) {
   const { reduced } = useCalmMotion();
+  const isLight = scheme === 'light';
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <LinearGradient colors={['#0E1B24', '#132430', '#0B151C']} style={StyleSheet.absoluteFill} />
-      <Wave baseY={height * 0.62} amp={14 + breathIntensity * 10} color="#3E6E7C" opacity={0.35} duration={9000} reduced={reduced} />
-      <Wave baseY={height * 0.72} amp={10 + breathIntensity * 8} color="#5C8A93" opacity={0.3} duration={12000} reduced={reduced} reverse />
-      <Wave baseY={height * 0.84} amp={8 + breathIntensity * 6} color="#8FA9AC" opacity={0.22} duration={15000} reduced={reduced} />
+      <LinearGradient
+        colors={isLight ? ['#CDEAF0', '#A9D9E0', '#DFF3E8'] : ['#0E1B24', '#132430', '#0B151C']}
+        style={StyleSheet.absoluteFill}
+      />
+      <Wave baseY={height * 0.62} amp={14 + breathIntensity * 10} color={isLight ? '#4A93A6' : '#3E6E7C'} opacity={0.35} duration={9000} reduced={reduced} />
+      <Wave baseY={height * 0.72} amp={10 + breathIntensity * 8} color={isLight ? '#6FB3BE' : '#5C8A93'} opacity={0.3} duration={12000} reduced={reduced} reverse />
+      <Wave baseY={height * 0.84} amp={8 + breathIntensity * 6} color={isLight ? '#9FCBC0' : '#8FA9AC'} opacity={0.22} duration={15000} reduced={reduced} />
     </View>
   );
 }

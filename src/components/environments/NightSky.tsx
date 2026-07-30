@@ -20,11 +20,15 @@ interface Star {
 interface NightSkyProps {
   breathIntensity?: number;
   starCount?: number;
+  scheme?: 'light' | 'dark';
 }
 
-/** A very dark, slow-moving sky — soft moon glow, faint twinkling stars. */
-export function NightSky({ breathIntensity = 0.3, starCount = 34 }: NightSkyProps) {
+/** Dark: a very dark, slow-moving night sky — soft moon glow, faint twinkling
+ *  stars. Light: the same slot rendered as a soft sunrise — warm horizon
+ *  glow, no stars, nothing that reads as "still night" in daylight. */
+export function NightSky({ breathIntensity = 0.3, starCount = 34, scheme = 'dark' }: NightSkyProps) {
   const { reduced } = useCalmMotion();
+  const isLight = scheme === 'light';
 
   const stars = useMemo<Star[]>(
     () =>
@@ -41,24 +45,28 @@ export function NightSky({ breathIntensity = 0.3, starCount = 34 }: NightSkyProp
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <LinearGradient colors={['#05060A', '#0A0E16', '#050608']} style={StyleSheet.absoluteFill} />
-      <MoonGlow breathIntensity={breathIntensity} reduced={reduced} />
-      {stars.map((s, i) => (
-        <Star key={i} star={s} reduced={reduced} />
-      ))}
+      <LinearGradient
+        colors={isLight ? ['#FBE0C2', '#F6C9A6', '#EFDCE6'] : ['#05060A', '#0A0E16', '#050608']}
+        style={StyleSheet.absoluteFill}
+      />
+      <MoonGlow breathIntensity={breathIntensity} reduced={reduced} isLight={isLight} />
+      {!isLight && stars.map((s, i) => <Star key={i} star={s} reduced={reduced} />)}
     </View>
   );
 }
 
-function MoonGlow({ breathIntensity, reduced }: { breathIntensity: number; reduced: boolean }) {
+function MoonGlow({ breathIntensity, reduced, isLight }: { breathIntensity: number; reduced: boolean; isLight: boolean }) {
   const loop = useSlowLoop(9000, reduced);
   const smoothIntensity = useSmoothedNumber(breathIntensity);
   const style = useAnimatedStyle(() => ({
     opacity: interpolate(loop.value, [0, 1], [0.35, 0.5]) + smoothIntensity.value * 0.1,
   }));
+  const glowColors: [string, string] = isLight
+    ? ['rgba(255,196,130,0.55)', 'rgba(255,196,130,0)']
+    : ['rgba(180,190,220,0.35)', 'rgba(180,190,220,0)'];
   return (
     <Animated.View style={[styles.moon, style]}>
-      <LinearGradient colors={['rgba(180,190,220,0.35)', 'rgba(180,190,220,0)']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={glowColors} style={StyleSheet.absoluteFill} />
     </Animated.View>
   );
 }

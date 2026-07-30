@@ -14,8 +14,8 @@ interface Streak {
   opacity: number;
 }
 
-/** Soft rain streaks drifting down, like rain on a window at night. Overlay on top of NightSky. */
-export function RainStreaks({ count = 18 }: { count?: number }) {
+/** Soft rain streaks drifting down, like rain on a window. Overlay on top of NightSky. */
+export function RainStreaks({ count = 18, scheme = 'dark' }: { count?: number; scheme?: 'light' | 'dark' }) {
   const { reduced } = useCalmMotion();
   const streaks = useMemo<Streak[]>(
     () =>
@@ -34,13 +34,13 @@ export function RainStreaks({ count = 18 }: { count?: number }) {
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       {streaks.map((s, i) => (
-        <Drop key={i} streak={s} />
+        <Drop key={i} streak={s} scheme={scheme} />
       ))}
     </View>
   );
 }
 
-function Drop({ streak }: { streak: Streak }) {
+function Drop({ streak, scheme }: { streak: Streak; scheme: 'light' | 'dark' }) {
   const v = useSharedValue(0);
   useEffect(() => {
     const t = setTimeout(() => {
@@ -54,10 +54,12 @@ function Drop({ streak }: { streak: Streak }) {
     transform: [{ translateY: interpolate(v.value, [0, 1], [-streak.length, height + streak.length]) }],
   }));
 
+  const rgb = scheme === 'light' ? '110,130,140' : '200,210,230';
+
   return (
     <Animated.View style={[{ position: 'absolute', left: streak.x, width: 1.5, height: streak.length }, style]}>
       <LinearGradient
-        colors={['rgba(200,210,230,0)', `rgba(200,210,230,${streak.opacity})`, 'rgba(200,210,230,0)']}
+        colors={[`rgba(${rgb},0)`, `rgba(${rgb},${streak.opacity})`, `rgba(${rgb},0)`]}
         style={StyleSheet.absoluteFill}
       />
     </Animated.View>

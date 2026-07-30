@@ -9,11 +9,14 @@ const { width, height } = Dimensions.get('window');
 
 interface FirePulseProps {
   breathIntensity?: number;
+  scheme?: 'light' | 'dark';
 }
 
-/** A warm, irregular glow rising from the bottom of the screen — like firelight, not a literal fire. */
-export function FirePulse({ breathIntensity = 0.4 }: FirePulseProps) {
+/** A warm, irregular glow rising from the bottom of the screen — like firelight, not a literal fire.
+ *  Light mode keeps the same cozy-hearth character on a bright, warm ground instead of a dark room. */
+export function FirePulse({ breathIntensity = 0.4, scheme = 'dark' }: FirePulseProps) {
   const { reduced } = useCalmMotion();
+  const isLight = scheme === 'light';
   const flickerA = useFlicker(2600, reduced);
   const flickerB = useFlicker(3900, reduced, 400);
   const smoothIntensity = useSmoothedNumber(breathIntensity);
@@ -28,9 +31,15 @@ export function FirePulse({ breathIntensity = 0.4 }: FirePulseProps) {
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <LinearGradient colors={['#150E0A', '#1C120C', '#120B08']} style={StyleSheet.absoluteFill} />
+      <LinearGradient
+        colors={isLight ? ['#FBEEDD', '#F6E0C5', '#F9EEDE'] : ['#150E0A', '#1C120C', '#120B08']}
+        style={StyleSheet.absoluteFill}
+      />
       <Animated.View style={[styles.glow, style]}>
-        <LinearGradient colors={['rgba(231,166,92,0.4)', 'rgba(231,166,92,0)']} style={StyleSheet.absoluteFill} />
+        <LinearGradient
+          colors={isLight ? ['rgba(216,140,72,0.4)', 'rgba(216,140,72,0)'] : ['rgba(231,166,92,0.4)', 'rgba(231,166,92,0)']}
+          style={StyleSheet.absoluteFill}
+        />
       </Animated.View>
     </View>
   );
