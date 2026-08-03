@@ -13,23 +13,25 @@ import { useSessionStore } from '@/store/useSessionStore';
 import { useWorryStore, selectPendingFromBefore } from '@/store/useWorryStore';
 import { deriveInsights } from '@/engines/insights';
 import { pickRightNowSuggestion, timeContext } from '@/engines/rightNow';
+import { Feeling } from '@/types';
 
 interface TileDef {
   label: string;
   glyph: string;
   colors: [string, string];
   route: string;
+  feeling?: Feeling;
 }
 
 const TILES: TileDef[] = [
-  { label: 'I can’t sleep', glyph: '☾', colors: ['#8A6F9E', '#5C6C8A'], route: '/sleep' },
-  { label: 'My mind won’t stop', glyph: '≈', colors: ['#7C93C3', '#8E7CC3'], route: '/racing-thoughts' },
-  { label: 'I feel overwhelmed', glyph: '◎', colors: ['#E2685A', '#D98E63'], route: '/panic?feeling=overwhelmed' },
-  { label: 'I feel alone', glyph: '◐', colors: ['#9C8AD9', '#5C6C8A'], route: '/connection' },
-  { label: 'I need to calm down', glyph: '⊙', colors: ['#E7A65C', '#8E7CC3'], route: '/panic?feeling=need-calm' },
-  { label: 'Something happened', glyph: '✦', colors: ['#D98E63', '#9C5B7C'], route: '/panic?feeling=something-happened' },
-  { label: 'Stay with me', glyph: '◉', colors: ['#E7A65C', '#C0658A'], route: '/stay-with-me' },
-  { label: 'I don’t even know', glyph: '⋯', colors: ['#7C93C3', '#726F8A'], route: '/unsure' },
+  { label: 'I can’t sleep', glyph: '☾', colors: ['#8A6F9E', '#5C6C8A'], route: '/sleep', feeling: 'cant-sleep' },
+  { label: 'My mind won’t stop', glyph: '≈', colors: ['#7C93C3', '#8E7CC3'], route: '/racing-thoughts', feeling: 'racing-thoughts' },
+  { label: 'I feel overwhelmed', glyph: '◎', colors: ['#E2685A', '#D98E63'], route: '/panic?feeling=overwhelmed', feeling: 'overwhelmed' },
+  { label: 'I feel alone', glyph: '◐', colors: ['#9C8AD9', '#5C6C8A'], route: '/connection', feeling: 'alone' },
+  { label: 'I need to calm down', glyph: '⊙', colors: ['#E7A65C', '#8E7CC3'], route: '/panic?feeling=need-calm', feeling: 'need-calm' },
+  { label: 'Something happened', glyph: '✦', colors: ['#D98E63', '#9C5B7C'], route: '/panic?feeling=something-happened', feeling: 'something-happened' },
+  { label: 'Stay with me', glyph: '◉', colors: ['#E7A65C', '#C0658A'], route: '/stay-with-me', feeling: 'alone' },
+  { label: 'I don’t even know', glyph: '⋯', colors: ['#7C93C3', '#726F8A'], route: '/unsure', feeling: 'dont-know' },
 ];
 
 export default function Home() {
@@ -41,6 +43,16 @@ export default function Home() {
   const pendingWorries = useMemo(() => selectPendingFromBefore(worries), [worries]);
   const resolveWorry = useWorryStore((s) => s.resolve);
   const rightNow = useMemo(() => pickRightNowSuggestion(sessions), [sessions]);
+  const commonSituations = useSettingsStore((s) => s.commonSituations);
+  const orderedTiles = useMemo(() => {
+    if (commonSituations.length === 0) return TILES;
+    // A gentle bias, not a reshuffle: whatever someone told us during
+    // onboarding brings them here most often floats to the front, but
+    // nothing disappears and the rest keep their original relative order.
+    const matched = TILES.filter((t) => t.feeling && commonSituations.includes(t.feeling));
+    const rest = TILES.filter((t) => !(t.feeling && commonSituations.includes(t.feeling)));
+    return [...matched, ...rest];
+  }, [commonSituations]);
 
   return (
     <Screen scroll>
@@ -74,7 +86,7 @@ export default function Home() {
       )}
 
       <View style={styles.grid}>
-        {chunk(TILES, 2).map((row, ri) => (
+        {chunk(orderedTiles, 2).map((row, ri) => (
           <View key={ri} style={styles.row}>
             {row.map((t, ci) => (
               <Animated.View key={t.label} style={{ flex: 1 }} entering={FadeInUp.delay((ri * 2 + ci) * 55).duration(380)}>

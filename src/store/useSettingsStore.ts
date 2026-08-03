@@ -2,8 +2,11 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { localStorage } from './storage';
 import { EnvironmentId } from '@/components/environments/types';
+import { Feeling } from '@/types';
 
 export type Appearance = 'light' | 'dark' | 'system';
+export type PresencePreference = 'guided' | 'quiet' | 'both';
+export type VisualEffects = 'auto' | 'full' | 'reduced';
 
 interface SettingsState {
   hasOnboarded: boolean;
@@ -16,6 +19,12 @@ interface SettingsState {
   calmEnvironment: EnvironmentId;
   sleepEnvironment: EnvironmentId;
   journalPatternHintsEnabled: boolean;
+  /** From onboarding — which situations bring someone here most, used to
+   *  gently reorder Home rather than as anything shown back to them as data. */
+  commonSituations: Feeling[];
+  /** From onboarding — biases the default Stay With Me presence mode. */
+  presencePreference: PresencePreference;
+  visualEffects: VisualEffects;
   setHasOnboarded: (v: boolean) => void;
   setName: (name: string) => void;
   setAppearance: (v: Appearance) => void;
@@ -26,6 +35,9 @@ interface SettingsState {
   setCalmEnvironment: (v: EnvironmentId) => void;
   setSleepEnvironment: (v: EnvironmentId) => void;
   setJournalPatternHintsEnabled: (v: boolean) => void;
+  setCommonSituations: (v: Feeling[]) => void;
+  setPresencePreference: (v: PresencePreference) => void;
+  setVisualEffects: (v: VisualEffects) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -41,6 +53,9 @@ export const useSettingsStore = create<SettingsState>()(
       calmEnvironment: 'abstract',
       sleepEnvironment: 'night',
       journalPatternHintsEnabled: true,
+      commonSituations: [],
+      presencePreference: 'both',
+      visualEffects: 'auto',
       setHasOnboarded: (v) => set({ hasOnboarded: v }),
       setName: (name) => set({ name }),
       setAppearance: (v) => set({ appearance: v }),
@@ -51,6 +66,9 @@ export const useSettingsStore = create<SettingsState>()(
       setCalmEnvironment: (v) => set({ calmEnvironment: v }),
       setSleepEnvironment: (v) => set({ sleepEnvironment: v }),
       setJournalPatternHintsEnabled: (v) => set({ journalPatternHintsEnabled: v }),
+      setCommonSituations: (v) => set({ commonSituations: v }),
+      setPresencePreference: (v) => set({ presencePreference: v }),
+      setVisualEffects: (v) => set({ visualEffects: v }),
     }),
     { name: 'ebb.settings', storage: localStorage },
   ),

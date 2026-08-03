@@ -13,6 +13,7 @@ import { spacing, radii } from '@/theme/tokens';
 import { useAudioExperience } from '@/hooks/useAudioExperience';
 import { useSessionOnMount } from '@/hooks/useSessionOnMount';
 import { useSessionStore } from '@/store/useSessionStore';
+import { useSettingsStore } from '@/store/useSettingsStore';
 import { companionRespond, OPENING_LINE } from '@/engines/aiCompanion';
 import { fonts } from '@/theme/useAppFonts';
 
@@ -75,7 +76,14 @@ export default function StayWithMe() {
   useModeOnFocus('panic');
   const { palette } = useTheme();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
-  const [mode, setMode] = useState<PresenceMode>(tab === 'talk' ? 'talk-through' : 'quiet');
+  const presencePreference = useSettingsStore((s) => s.presencePreference);
+  const [mode, setMode] = useState<PresenceMode>(() => {
+    if (tab === 'talk') return 'talk-through';
+    if (tab) return 'quiet';
+    // No explicit request — fall back to what they told us during
+    // onboarding they generally want in a hard moment.
+    return presencePreference === 'guided' ? 'talk-through' : 'quiet';
+  });
   const logTechnique = useSessionStore((s) => s.logTechnique);
   const endSession = useSessionStore((s) => s.end);
   const [messages, setMessages] = useState<ChatMessage[]>([{ from: 'ebb', text: OPENING_LINE }]);
