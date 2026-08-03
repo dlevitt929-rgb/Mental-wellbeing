@@ -123,7 +123,7 @@ function JournalWriteScreen() {
   };
 
   return (
-    <Screen backdrop={<Environment id={calmEnvironment} warmth={0.1} />}>
+    <Screen backdrop={<Environment id={calmEnvironment} warmth={0.1} />} onBack={finish}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scroll}>
         {isNew && text.trim().length === 0 && (
           <Pressable onPress={() => setShowPrompts((v) => !v)} style={{ marginBottom: spacing.sm }}>

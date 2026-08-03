@@ -1,10 +1,9 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { Screen } from '@/components/Screen';
-import { CalmButton } from '@/components/CalmButton';
-import { Title, Body, Whisper } from '@/theme/Type';
+import { EmptyState } from '@/components/EmptyState';
+import { Title, Body } from '@/theme/Type';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing, radii } from '@/theme/tokens';
 import { useSessionStore } from '@/store/useSessionStore';
@@ -25,9 +24,11 @@ export default function ThingsThatHelp() {
       </Body>
 
       {insights.length === 0 ? (
-        <Whisper style={{ marginTop: spacing.xl }}>
-          Come back here once you've used Ebb a little more. There isn't enough to notice yet.
-        </Whisper>
+        <EmptyState
+          glyph="✦"
+          message="Give it a little more time, and this page will start to notice what helps."
+          secondary="Nothing to look at yet — that's alright."
+        />
       ) : (
         <View style={{ gap: 10 }}>
           {insights.map((line, i) => (
@@ -41,8 +42,6 @@ export default function ThingsThatHelp() {
           ))}
         </View>
       )}
-
-      <CalmButton label="Back" variant="ghost" style={{ marginTop: spacing.xl }} onPress={() => router.back()} />
     </Screen>
   );
 }

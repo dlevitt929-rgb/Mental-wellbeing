@@ -87,7 +87,7 @@ export default function Onboarding() {
   };
 
   return (
-    <Screen center>
+    <Screen center showBack={false}>
       <View style={styles.wrap}>
         {step === 'opening' && (
           <Animated.View entering={FadeIn.duration(600)} style={styles.block}>

@@ -147,7 +147,7 @@ export default function Home() {
   ];
 
   return (
-    <Screen scroll>
+    <Screen scroll showBack={false}>
       <View style={styles.header}>
         <Body color={palette.textMuted}>{greeting()}{name ? `, ${name}` : ''}</Body>
         <Title style={{ marginTop: 6 }}>What's happening right now?</Title>

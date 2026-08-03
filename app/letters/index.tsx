@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TextInput, Pressable } from 'react-native';
-import { router } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { FloatingHelpButton } from '@/components/FloatingHelpButton';
 import { CalmButton } from '@/components/CalmButton';
@@ -179,8 +178,6 @@ export default function Letters() {
           );
         })}
       </View>
-
-      <CalmButton label="Back" variant="ghost" style={{ marginTop: spacing.xl }} onPress={() => router.back()} />
     </Screen>
   );
 }

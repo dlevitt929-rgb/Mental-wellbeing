@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TextInput, Pressable } from 'react-native';
-import { router } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { CalmButton } from '@/components/CalmButton';
 import { Title, Body, Caption, Headline } from '@/theme/Type';
@@ -9,7 +8,6 @@ import { spacing, radii } from '@/theme/tokens';
 import { useContactsStore } from '@/store/useContactsStore';
 import { fonts } from '@/theme/useAppFonts';
 import { EmptyState } from '@/components/EmptyState';
-import { EXIT_COPY } from '@/theme/exitCopy';
 
 export default function Contacts() {
   const { palette } = useTheme();
@@ -96,8 +94,6 @@ export default function Contacts() {
       ) : contacts.length > 0 ? (
         <CalmButton label="+ Add someone" onPress={() => setAdding(true)} style={{ marginTop: spacing.lg }} />
       ) : null}
-
-      <CalmButton label={EXIT_COPY.back} variant="ghost" style={{ marginTop: spacing.xl }} onPress={() => router.back()} />
     </Screen>
   );
 }

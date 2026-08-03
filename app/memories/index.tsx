@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, TextInput, Pressable } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated';
 import {
   useAudioRecorder,
@@ -95,8 +95,6 @@ export default function Memories() {
               </Animated.View>
             ))}
           </View>
-
-          <CalmButton label="Back" variant="ghost" style={{ marginTop: spacing.xl }} onPress={() => router.back()} />
         </>
       )}
 

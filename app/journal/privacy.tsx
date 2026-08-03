@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Switch, TextInput, Alert } from 'react-native';
-import { router } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Crypto from 'expo-crypto';
 import { Screen } from '@/components/Screen';
@@ -178,8 +177,6 @@ export default function JournalPrivacy() {
         <CalmButton label="Export my journal" onPress={handleExport} style={{ marginBottom: spacing.sm }} />
         <CalmButton label="Delete all journal entries" variant="danger" onPress={clearJournal} />
       </Section>
-
-      <CalmButton label="Back" variant="ghost" style={{ marginTop: spacing.xl }} onPress={() => router.back()} />
     </Screen>
   );
 }

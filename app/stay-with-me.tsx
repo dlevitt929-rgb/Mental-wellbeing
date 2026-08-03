@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     justifyContent: 'center',
-    marginTop: spacing.sm,
+    marginTop: spacing.xxxl,
     marginBottom: spacing.sm,
     paddingHorizontal: spacing.md,
   },

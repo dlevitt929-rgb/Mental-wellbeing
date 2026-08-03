@@ -13,6 +13,7 @@ import Animated, {
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/tokens';
 import { hexToRgba } from '@/utils/color';
+import { BackButton } from '@/components/BackButton';
 
 interface ScreenProps {
   children: React.ReactNode;
@@ -24,11 +25,22 @@ interface ScreenProps {
   overlay?: React.ReactNode;
   /** Replaces the default flat gradient with a full-bleed immersive scene (an <Environment/>, etc). */
   backdrop?: React.ReactNode;
+  /** Every screen gets a consistent way back by default. Turn off only for
+   *  places that genuinely have nowhere to go back to (Home) or that own
+   *  their own exit flow entirely (onboarding). */
+  showBack?: boolean;
+  /** Runs instead of the default router.back() — for screens that need to
+   *  flush unsaved state first. */
+  onBack?: () => void;
 }
 
-export function Screen({ children, scroll, center, padded = true, style, overlay, backdrop }: ScreenProps) {
+export function Screen({ children, scroll, center, padded = true, style, overlay, backdrop, showBack = true, onBack }: ScreenProps) {
   const { palette } = useTheme();
   const Container = scroll ? ScrollView : View;
+  // Centered layouts already keep content well clear of the corner; anything
+  // that starts flush at the top needs real room reserved so a title or the
+  // first line of content never sits behind the back button.
+  const clearBack = showBack && padded && !center;
 
   // A barely-there presence: the whole app rests at a slow, calm breathing rate,
   // even when no exercise is running — so it never feels like a static, dead screen.
@@ -69,16 +81,17 @@ export function Screen({ children, scroll, center, padded = true, style, overlay
           <Container
             style={[styles.fill, style]}
             contentContainerStyle={
-              scroll ? [padded && s.padded, center && s.center] : undefined
+              scroll ? [padded && s.padded, center && s.center, clearBack && s.clearBack] : undefined
             }
             {...(!scroll ? { } : { showsVerticalScrollIndicator: false })}
           >
             {!scroll ? (
-              <View style={[styles.fill, padded && s.padded, center && s.center]}>{children}</View>
+              <View style={[styles.fill, padded && s.padded, center && s.center, clearBack && s.clearBack]}>{children}</View>
             ) : (
               children
             )}
           </Container>
+          {showBack && <BackButton onPress={onBack} />}
           {overlay}
         </Animated.View>
       </SafeAreaView>
@@ -93,4 +106,5 @@ const styles = StyleSheet.create({
 const s = StyleSheet.create({
   padded: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xxl },
   center: { flexGrow: 1, justifyContent: 'center' },
+  clearBack: { paddingTop: spacing.xxxl },
 });
