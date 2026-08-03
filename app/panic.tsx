@@ -31,8 +31,13 @@ import { useLettersStore } from '@/store/useLettersStore';
 import { useMemoriesStore } from '@/store/useMemoriesStore';
 import { usePanicResumeStore, getFreshPanicSnapshot } from '@/store/usePanicResumeStore';
 import { Feeling, BreathingPhase } from '@/types';
+import { EXIT_COPY } from '@/theme/exitCopy';
 
 type Stage = 'resume-offer' | 'opening' | 'letter-offer' | 'letter-read' | 'questions' | PlanStep['kind'] | 'landing';
+
+// A quiet way to move on to the next technique without leaving the flow
+// entirely — for whichever step in the plan is currently running.
+const CAN_SWITCH_STAGES: PlanStep['kind'][] = ['breathing', 'physical-grounding', 'cognitive-distancing', 'reassurance'];
 
 function sampleSenses(n: number) {
   const shuffled = [...FIVE_SENSES_SEQUENCE].sort(() => Math.random() - 0.5);
@@ -185,7 +190,16 @@ export default function Panic() {
           warmth={warmth}
         />
       }
-      overlay={stage === 'breathing' ? <SessionSoundToggle /> : undefined}
+      overlay={
+        <>
+          {stage === 'breathing' && <SessionSoundToggle />}
+          {CAN_SWITCH_STAGES.includes(stage as PlanStep['kind']) && (
+            <Pressable onPress={advancePlan} style={styles.needDifferent} accessibilityRole="button">
+              <Caption color={palette.textFaint}>{EXIT_COPY.needSomethingDifferent}</Caption>
+            </Pressable>
+          )}
+        </>
+      }
     >
       {stage === 'resume-offer' && (
         <Animated.View entering={FadeIn.duration(500)} style={styles.block}>
@@ -245,7 +259,7 @@ export default function Panic() {
               }}
             />
             <CalmButton
-              label="Not now"
+              label={EXIT_COPY.notRightNow}
               variant="ghost"
               onPress={() => {
                 logStep('panic:questions');
@@ -397,4 +411,5 @@ const styles = StyleSheet.create({
   answerRow: { flexDirection: 'row', gap: 12, marginTop: spacing.xl, width: '100%' },
   answerBtn: { flex: 1 },
   footer: { position: 'absolute', bottom: 12, alignSelf: 'center' },
+  needDifferent: { position: 'absolute', bottom: 44, alignSelf: 'center' },
 });

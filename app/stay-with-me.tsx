@@ -79,6 +79,8 @@ export default function StayWithMe() {
   const presencePreference = useSettingsStore((s) => s.presencePreference);
   const [mode, setMode] = useState<PresenceMode>(() => {
     if (tab === 'talk') return 'talk-through';
+    if (tab === 'just-stay') return 'just-stay';
+    if (tab === 'quiet') return 'quiet';
     if (tab) return 'quiet';
     // No explicit request — fall back to what they told us during
     // onboarding they generally want in a hard moment.

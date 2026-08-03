@@ -11,6 +11,7 @@ import { fonts } from '@/theme/useAppFonts';
 import { useLettersStore } from '@/store/useLettersStore';
 import { LetterCategory } from '@/types';
 import { formatFullTimestamp } from '@/utils/formatDate';
+import { EmptyState } from '@/components/EmptyState';
 
 const CATEGORIES: { id: LetterCategory; label: string }[] = [
   { id: 'general', label: 'Anytime' },
@@ -139,6 +140,13 @@ export default function Letters() {
             <CalmButton label="Cancel" variant="ghost" onPress={() => setWriting(false)} style={{ flex: 1 }} />
           </View>
         </View>
+      ) : letters.length === 0 ? (
+        <EmptyState
+          glyph="✉"
+          message="Leave something for the version of you who may need it later."
+          actionLabel="Write a message"
+          onAction={() => setWriting(true)}
+        />
       ) : (
         <CalmButton label="+ Write a letter" onPress={() => setWriting(true)} style={{ marginBottom: spacing.lg }} />
       )}

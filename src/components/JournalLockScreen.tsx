@@ -10,12 +10,14 @@ import { spacing, radii } from '@/theme/tokens';
 import { fonts } from '@/theme/useAppFonts';
 import { TextInput, Pressable } from 'react-native';
 import { useJournalSecurityStore, useJournalUnlockedStore } from '@/store/useJournalSecurityStore';
+import { useHaptics } from '@/hooks/useHaptics';
 
 export function JournalLockScreen() {
   const { palette } = useTheme();
   const biometricEnabled = useJournalSecurityStore((s) => s.biometricEnabled);
   const pinHash = useJournalSecurityStore((s) => s.pinHash);
   const unlock = useJournalUnlockedStore((s) => s.unlock);
+  const { warning } = useHaptics();
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
   const [tryingBiometric, setTryingBiometric] = useState(biometricEnabled);
@@ -50,6 +52,7 @@ export function JournalLockScreen() {
     if (hash === pinHash) {
       unlock();
     } else {
+      warning();
       setError(true);
       setPin('');
     }

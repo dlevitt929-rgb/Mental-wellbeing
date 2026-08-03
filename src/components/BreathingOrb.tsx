@@ -9,11 +9,10 @@ import Animated, {
   FadeOut,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/theme/ThemeProvider';
 import { Whisper } from '@/theme/Type';
 import { BreathingTechnique, BreathingPhase } from '@/types';
-import { useSettingsStore } from '@/store/useSettingsStore';
+import { useHaptics } from '@/hooks/useHaptics';
 import { hexToRgba } from '@/utils/color';
 
 interface BreathingOrbProps {
@@ -37,7 +36,7 @@ const SCALE_FOR_PHASE: Record<BreathingPhase['key'], number> = {
 
 export function BreathingOrb({ technique, running, onCycleComplete, onComplete, onPhase }: BreathingOrbProps) {
   const { palette } = useTheme();
-  const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
+  const { breathingPulse } = useHaptics();
   const scale = useSharedValue(0.85);
   const glow = useSharedValue(0.5);
   const [phaseIdx, setPhaseIdx] = useState(0);
@@ -72,8 +71,8 @@ export function BreathingOrb({ technique, running, onCycleComplete, onComplete, 
       easing: Easing.inOut(Easing.sin),
     });
 
-    if (hapticsEnabled && (current.key === 'inhale' || current.key === 'exhale')) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    if (current.key === 'inhale' || current.key === 'exhale') {
+      breathingPulse();
     }
 
     timerRef.current = setTimeout(() => {

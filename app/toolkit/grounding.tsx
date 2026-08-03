@@ -8,6 +8,7 @@ import { CalmButton } from '@/components/CalmButton';
 import { Title, Body } from '@/theme/Type';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/tokens';
+import { EXIT_COPY } from '@/theme/exitCopy';
 import { FIVE_SENSES_SEQUENCE } from '@/data/grounding';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
@@ -27,7 +28,7 @@ export default function GroundingToolkit() {
     return (
       <Screen center backdrop={backdrop}>
         <Title center>Good. You're here now.</Title>
-        <CalmButton label="Done" variant="primary" style={{ marginTop: spacing.xl }} onPress={() => router.back()} />
+        <CalmButton label={EXIT_COPY.doneForNow} variant="primary" style={{ marginTop: spacing.xl }} onPress={() => router.back()} />
       </Screen>
     );
   }

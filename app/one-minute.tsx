@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import { Screen } from '@/components/Screen';
 import { Environment } from '@/components/environments/Environment';
 import { BreathingOrb } from '@/components/BreathingOrb';
@@ -15,6 +14,7 @@ import { useAudioExperience } from '@/hooks/useAudioExperience';
 import { soundForEnvironment } from '@/engines/soundEngine';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useSessionStore } from '@/store/useSessionStore';
+import { useHaptics } from '@/hooks/useHaptics';
 
 const BEATS: { at: number; text: string }[] = [
   { at: 0, text: 'Put the phone down beside you.' },
@@ -32,7 +32,7 @@ export default function OneMinuteWithMe() {
   useModeOnFocus('panic');
   const { palette } = useTheme();
   const calmEnvironment = useSettingsStore((s) => s.calmEnvironment);
-  const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
+  const { selection } = useHaptics();
   const start = useSessionStore((s) => s.start);
   const logTechnique = useSessionStore((s) => s.logTechnique);
   const endSession = useSessionStore((s) => s.end);
@@ -70,9 +70,9 @@ export default function OneMinuteWithMe() {
     const idx = BEATS.indexOf(currentBeat);
     if (idx !== lastBeatIndex.current) {
       lastBeatIndex.current = idx;
-      if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      selection();
     }
-  }, [currentBeat, hapticsEnabled]);
+  }, [currentBeat, selection]);
 
   const warmth = Math.min(1, elapsed / TOTAL_SECONDS);
   const breathingStarted = elapsed >= 10;

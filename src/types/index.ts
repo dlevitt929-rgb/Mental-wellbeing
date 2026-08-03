@@ -141,6 +141,7 @@ export interface JournalEntry {
   createdAt: number;
   updatedAt: number;
   mood?: Mood;
+  pinned?: boolean;
 }
 
 export interface InsightSignal {

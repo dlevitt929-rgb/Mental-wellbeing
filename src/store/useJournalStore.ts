@@ -9,6 +9,7 @@ interface JournalState {
   /** Creates the entry immediately (autosave from the first keystroke) and returns its id. */
   create: (text: string, mood?: Mood) => string;
   update: (id: string, patch: Partial<Pick<JournalEntry, 'text' | 'mood'>>) => void;
+  togglePin: (id: string) => void;
   remove: (id: string) => void;
   removeAll: () => void;
   getById: (id: string) => JournalEntry | undefined;
@@ -27,6 +28,10 @@ export const useJournalStore = create<JournalState>()(
       update: (id, patch) =>
         set((s) => ({
           entries: s.entries.map((e) => (e.id === id ? { ...e, ...patch, updatedAt: Date.now() } : e)),
+        })),
+      togglePin: (id) =>
+        set((s) => ({
+          entries: s.entries.map((e) => (e.id === id ? { ...e, pinned: !e.pinned } : e)),
         })),
       remove: (id) => set((s) => ({ entries: s.entries.filter((e) => e.id !== id) })),
       removeAll: () => set({ entries: [] }),

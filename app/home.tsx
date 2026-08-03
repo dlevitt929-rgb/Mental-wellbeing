@@ -1,21 +1,27 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { Screen } from '@/components/Screen';
 import { CalmTile } from '@/components/CalmTile';
 import { HeroHelpButton } from '@/components/HeroHelpButton';
+import { OfflineBanner } from '@/components/OfflineBanner';
+import { LongPressMenu, LongPressAction } from '@/components/LongPressMenu';
 import { Title, Body, Caption } from '@/theme/Type';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing, radii } from '@/theme/tokens';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useWorryStore, selectPendingFromBefore } from '@/store/useWorryStore';
-import { deriveInsights } from '@/engines/insights';
+import { useSleepMemoryStore, getRepeatableSleepReason } from '@/store/useSleepMemoryStore';
+import { useJournalStore } from '@/store/useJournalStore';
+import { deriveInsights, getTopTechnique } from '@/engines/insights';
 import { pickRightNowSuggestion, timeContext } from '@/engines/rightNow';
-import { Feeling } from '@/types';
+import { Feeling, Technique } from '@/types';
+import { markStartup, useFrameDropWarnings } from '@/engines/perfInstrumentation';
 
 interface TileDef {
+  id: string;
   label: string;
   glyph: string;
   colors: [string, string];
@@ -24,18 +30,40 @@ interface TileDef {
 }
 
 const TILES: TileDef[] = [
-  { label: 'I can’t sleep', glyph: '☾', colors: ['#8A6F9E', '#5C6C8A'], route: '/sleep', feeling: 'cant-sleep' },
-  { label: 'My mind won’t stop', glyph: '≈', colors: ['#7C93C3', '#8E7CC3'], route: '/racing-thoughts', feeling: 'racing-thoughts' },
-  { label: 'I feel overwhelmed', glyph: '◎', colors: ['#E2685A', '#D98E63'], route: '/panic?feeling=overwhelmed', feeling: 'overwhelmed' },
-  { label: 'I feel alone', glyph: '◐', colors: ['#9C8AD9', '#5C6C8A'], route: '/connection', feeling: 'alone' },
-  { label: 'I need to calm down', glyph: '⊙', colors: ['#E7A65C', '#8E7CC3'], route: '/panic?feeling=need-calm', feeling: 'need-calm' },
-  { label: 'Something happened', glyph: '✦', colors: ['#D98E63', '#9C5B7C'], route: '/panic?feeling=something-happened', feeling: 'something-happened' },
-  { label: 'Stay with me', glyph: '◉', colors: ['#E7A65C', '#C0658A'], route: '/stay-with-me', feeling: 'alone' },
-  { label: 'I don’t even know', glyph: '⋯', colors: ['#7C93C3', '#726F8A'], route: '/unsure', feeling: 'dont-know' },
+  { id: 'cant-sleep', label: 'I can’t sleep', glyph: '☾', colors: ['#8A6F9E', '#5C6C8A'], route: '/sleep', feeling: 'cant-sleep' },
+  { id: 'racing-thoughts', label: 'My mind won’t stop', glyph: '≈', colors: ['#7C93C3', '#8E7CC3'], route: '/racing-thoughts', feeling: 'racing-thoughts' },
+  { id: 'overwhelmed', label: 'I feel overwhelmed', glyph: '◎', colors: ['#E2685A', '#D98E63'], route: '/panic?feeling=overwhelmed', feeling: 'overwhelmed' },
+  { id: 'connection', label: 'I feel alone', glyph: '◐', colors: ['#9C8AD9', '#5C6C8A'], route: '/connection', feeling: 'alone' },
+  { id: 'need-calm', label: 'I need to calm down', glyph: '⊙', colors: ['#E7A65C', '#8E7CC3'], route: '/panic?feeling=need-calm', feeling: 'need-calm' },
+  { id: 'something-happened', label: 'Something happened', glyph: '✦', colors: ['#D98E63', '#9C5B7C'], route: '/panic?feeling=something-happened', feeling: 'something-happened' },
+  { id: 'stay-with-me', label: 'Stay with me', glyph: '◉', colors: ['#E7A65C', '#C0658A'], route: '/stay-with-me', feeling: 'alone' },
+  { id: 'dont-know', label: 'I don’t even know', glyph: '⋯', colors: ['#7C93C3', '#726F8A'], route: '/unsure', feeling: 'dont-know' },
 ];
+
+const TECHNIQUE_ROUTE: Partial<Record<Technique, string>> = {
+  breathing: '/toolkit/breathing',
+  grounding: '/toolkit/grounding',
+  pmr: '/toolkit/pmr',
+  'body-scan': '/toolkit/body-scan',
+  'cognitive-defusion': '/toolkit/defusion',
+  'sensory-grounding': '/toolkit/sensory',
+  movement: '/toolkit/movement',
+  'self-compassion': '/toolkit/self-compassion',
+  'worry-postponement': '/toolkit/worry-postponement',
+  'emotional-regulation': '/toolkit/emotional-regulation',
+  'hold-to-breathe': '/toolkit/hold-to-breathe',
+  'guided-imagery': '/toolkit/guided-imagery',
+  'follow-along': '/dont-think-just-follow',
+  talking: '/stay-with-me?tab=talk',
+  'stay-with-me': '/stay-with-me',
+};
 
 export default function Home() {
   const { palette } = useTheme();
+  useFrameDropWarnings('home');
+  useEffect(() => {
+    markStartup('home-mounted');
+  }, []);
   const name = useSettingsStore((s) => s.name);
   const sessions = useSessionStore((s) => s.sessions);
   const insights = useMemo(() => deriveInsights(sessions), [sessions]);
@@ -54,12 +82,78 @@ export default function Home() {
     return [...matched, ...rest];
   }, [commonSituations]);
 
+  const topTechnique = useMemo(() => getTopTechnique(sessions), [sessions]);
+  const favoriteEnvironment = useSettingsStore((s) => s.favoriteEnvironment);
+  const sleepMemory = useSleepMemoryStore((s) => s);
+  const repeatableSleepReason = getRepeatableSleepReason(sleepMemory);
+  const journalEntries = useJournalStore((s) => s.entries);
+  const latestDraft = useMemo(
+    () => (journalEntries.length ? [...journalEntries].sort((a, b) => b.updatedAt - a.updatedAt)[0] : null),
+    [journalEntries],
+  );
+
+  const tileActions = (tile: TileDef): LongPressAction[] => {
+    if (tile.id === 'cant-sleep') {
+      const actions: LongPressAction[] = [];
+      if (repeatableSleepReason) {
+        actions.push({
+          label: 'Start the last sleep experience',
+          onPress: () => router.push(`/sleep?reason=${repeatableSleepReason}`),
+        });
+      }
+      if (favoriteEnvironment) {
+        actions.push({
+          label: 'Start my favourite soundscape',
+          onPress: () => router.push(`/sleep?sound=${favoriteEnvironment}`),
+        });
+      }
+      actions.push({
+        label: 'Open Nothing to Solve Tonight',
+        onPress: () => router.push('/sleep?direct=nothing-to-solve'),
+      });
+      return actions;
+    }
+    if (tile.id === 'need-calm') {
+      const actions: LongPressAction[] = [];
+      const topRoute = topTechnique ? TECHNIQUE_ROUTE[topTechnique] : undefined;
+      if (topRoute) {
+        actions.push({ label: 'Repeat what helped last time', onPress: () => router.push(topRoute) });
+      }
+      actions.push({ label: 'Start One Minute With Me', onPress: () => router.push('/one-minute') });
+      actions.push({ label: "Start Don't Think, Just Follow", onPress: () => router.push('/dont-think-just-follow') });
+      return actions;
+    }
+    if (tile.id === 'stay-with-me') {
+      return [
+        { label: 'Quiet presence', onPress: () => router.push('/stay-with-me?tab=quiet') },
+        { label: 'Talk me through this', onPress: () => router.push('/stay-with-me?tab=talk') },
+        { label: 'Just stay', onPress: () => router.push('/stay-with-me?tab=just-stay') },
+      ];
+    }
+    return [];
+  };
+
+  const journalActions: LongPressAction[] = [
+    { label: 'Start a new entry', onPress: () => router.push('/journal/new') },
+    ...(latestDraft
+      ? [
+          {
+            label: 'Continue the most recent draft',
+            onPress: () => router.push({ pathname: '/journal/new', params: { id: latestDraft.id } }),
+          },
+        ]
+      : []),
+    { label: 'Record a voice note', onPress: () => router.push({ pathname: '/memories', params: { mode: 'record' } }) },
+  ];
+
   return (
     <Screen scroll>
       <View style={styles.header}>
         <Body color={palette.textMuted}>{greeting()}{name ? `, ${name}` : ''}</Body>
         <Title style={{ marginTop: 6 }}>What's happening right now?</Title>
       </View>
+
+      <OfflineBanner />
 
       <HeroHelpButton />
 
@@ -90,7 +184,7 @@ export default function Home() {
           <View key={ri} style={styles.row}>
             {row.map((t, ci) => (
               <Animated.View key={t.label} style={{ flex: 1 }} entering={FadeInUp.delay((ri * 2 + ci) * 55).duration(380)}>
-                <CalmTile label={t.label} glyph={t.glyph} colors={t.colors} route={t.route} />
+                <CalmTile label={t.label} glyph={t.glyph} colors={t.colors} route={t.route} actions={tileActions(t)} />
               </Animated.View>
             ))}
           </View>
@@ -110,7 +204,15 @@ export default function Home() {
       )}
 
       <View style={styles.secondary}>
-        <SecondaryLink label="Your journal" onPress={() => router.push('/journal')} />
+        <LongPressMenu
+          actions={journalActions}
+          title="Your journal"
+          onPress={() => router.push('/journal')}
+          style={({ pressed }: { pressed: boolean }) => [{ opacity: pressed ? 0.6 : 1, paddingVertical: 10 }]}
+          accessibilityLabel="Your journal"
+        >
+          <Body color={palette.textMuted}>Your journal</Body>
+        </LongPressMenu>
         <SecondaryLink label="Explore the toolkit" onPress={() => router.push('/toolkit')} />
         <SecondaryLink label="My Calm Plan" onPress={() => router.push('/calm-plan')} />
         <SecondaryLink label="A letter from calm you" onPress={() => router.push('/letters')} />

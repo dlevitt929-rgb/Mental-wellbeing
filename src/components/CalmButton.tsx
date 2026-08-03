@@ -1,12 +1,11 @@
 import React from 'react';
 import { Pressable, StyleSheet, ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/theme/ThemeProvider';
 import { BodyMedium, Headline } from '@/theme/Type';
 import { radii, spacing } from '@/theme/tokens';
-import { useSettingsStore } from '@/store/useSettingsStore';
+import { useHaptics } from '@/hooks/useHaptics';
 
 interface CalmButtonProps {
   label: string;
@@ -28,7 +27,7 @@ export function CalmButton({
   haptic = true,
 }: CalmButtonProps) {
   const { palette } = useTheme();
-  const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
+  const { selection } = useHaptics();
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -40,9 +39,7 @@ export function CalmButton({
     scale.value = withTiming(1, { duration: 160 });
   };
   const handlePress = () => {
-    if (haptic && hapticsEnabled) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft).catch(() => {});
-    }
+    if (haptic) selection();
     onPress();
   };
 

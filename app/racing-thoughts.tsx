@@ -18,8 +18,8 @@ import { useSessionOnMount } from '@/hooks/useSessionOnMount';
 import { useJournalStore } from '@/store/useJournalStore';
 import { fonts } from '@/theme/useAppFonts';
 import { generateId } from '@/utils/id';
-import * as Haptics from 'expo-haptics';
-import { useSettingsStore } from '@/store/useSettingsStore';
+import { useHaptics } from '@/hooks/useHaptics';
+import { EXIT_COPY } from '@/theme/exitCopy';
 
 type Category = 'deal-tomorrow' | 'not-in-control' | 'just-a-thought' | 'important' | 'let-go';
 
@@ -46,7 +46,7 @@ export default function RacingThoughts() {
   const logTechnique = useSessionStore((s) => s.logTechnique);
   const endSession = useSessionStore((s) => s.end);
   const createJournalEntry = useJournalStore((s) => s.create);
-  const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
+  const haptics = useHaptics();
   const [savedToJournal, setSavedToJournal] = useState(false);
   const categorizeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -68,12 +68,12 @@ export default function RacingThoughts() {
       ...t,
       { id: generateId(), text, rotation: Math.random() * 6 - 3 },
     ]);
-    if (hapticsEnabled) Haptics.selectionAsync().catch(() => {});
+    haptics.selection();
   };
 
   const categorize = (id: string, category: Category) => {
     logTechnique('cognitive-defusion');
-    if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    haptics.softConfirmation();
     setOpenId(null);
     if (categorizeTimer.current) clearTimeout(categorizeTimer.current);
     categorizeTimer.current = setTimeout(() => {
@@ -90,7 +90,7 @@ export default function RacingThoughts() {
     const text = thoughts.map((t) => `• ${t.text}`).join('\n');
     createJournalEntry(text);
     logTechnique('journaling');
-    if (hapticsEnabled) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    haptics.softConfirmation();
     setSavedToJournal(true);
   };
 
@@ -179,7 +179,7 @@ export default function RacingThoughts() {
               Saved to your journal.
             </Caption>
           )}
-          <CalmButton label="I'm done for now" variant="primary" style={{ marginTop: spacing.sm }} onPress={finish} />
+          <CalmButton label={EXIT_COPY.doneForNow} variant="primary" style={{ marginTop: spacing.sm }} onPress={finish} />
         </>
       )}
     </Screen>

@@ -8,6 +8,8 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { spacing, radii } from '@/theme/tokens';
 import { useContactsStore } from '@/store/useContactsStore';
 import { fonts } from '@/theme/useAppFonts';
+import { EmptyState } from '@/components/EmptyState';
+import { EXIT_COPY } from '@/theme/exitCopy';
 
 export default function Contacts() {
   const { palette } = useTheme();
@@ -36,6 +38,14 @@ export default function Contacts() {
       </Body>
 
       <View style={{ marginTop: spacing.lg, gap: 10 }}>
+        {contacts.length === 0 && !adding && (
+          <EmptyState
+            glyph="◐"
+            message="Choose the people you would feel safest reaching out to."
+            actionLabel="Add someone"
+            onAction={() => setAdding(true)}
+          />
+        )}
         {contacts.map((c) => (
           <View key={c.id} style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
             <View style={{ flex: 1 }}>
@@ -83,11 +93,11 @@ export default function Contacts() {
             <CalmButton label="Cancel" variant="ghost" onPress={() => setAdding(false)} style={{ flex: 1 }} />
           </View>
         </View>
-      ) : (
+      ) : contacts.length > 0 ? (
         <CalmButton label="+ Add someone" onPress={() => setAdding(true)} style={{ marginTop: spacing.lg }} />
-      )}
+      ) : null}
 
-      <CalmButton label="Done" variant="ghost" style={{ marginTop: spacing.xl }} onPress={() => router.back()} />
+      <CalmButton label={EXIT_COPY.back} variant="ghost" style={{ marginTop: spacing.xl }} onPress={() => router.back()} />
     </Screen>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { View, StyleSheet, Pressable, TextInput, ScrollView } from 'react-native';
+import { View, StyleSheet, Pressable, TextInput, ScrollView, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path, Rect } from 'react-native-svg';
@@ -23,9 +23,12 @@ import { MOOD_BY_ID } from '@/data/moods';
 import { WEATHER_BY_MOOD } from '@/data/weather';
 import { JournalEntry } from '@/types';
 import { useNavigateWithWipe } from '@/engines/TransitionOverlay';
-import * as Haptics from 'expo-haptics';
 import { useSettingsStore } from '@/store/useSettingsStore';
+import { useHaptics } from '@/hooks/useHaptics';
 import { derivePatternHints } from '@/engines/journalPatterns';
+import { exportJournal } from '@/utils/journalExport';
+import { useLongPressActions, ShortcutSheet } from '@/components/LongPressMenu';
+import { EmptyState } from '@/components/EmptyState';
 
 export default function JournalHome() {
   const unlocked = useJournalGate();
@@ -40,7 +43,14 @@ function JournalHomeContent() {
   const [query, setQuery] = useState('');
   const [dayFilter, setDayFilter] = useState<string | null>(null);
 
-  const sorted = useMemo(() => [...entries].sort((a, b) => b.createdAt - a.createdAt), [entries]);
+  const sorted = useMemo(
+    () =>
+      [...entries].sort((a, b) => {
+        if (Boolean(a.pinned) !== Boolean(b.pinned)) return a.pinned ? -1 : 1;
+        return b.createdAt - a.createdAt;
+      }),
+    [entries],
+  );
   const weatherStrip = useMemo(
     () => [...sorted].filter((e) => e.mood).slice(0, 7).reverse(),
     [sorted],
@@ -133,12 +143,22 @@ function JournalHomeContent() {
 
       <View style={{ marginTop: spacing.lg, gap: 10 }}>
         {filtered.length === 0 && entries.length > 0 && (
-          <Caption color={palette.textFaint}>Nothing matches yet.</Caption>
+          <EmptyState
+            glyph="⌕"
+            message="I couldn't find anything matching that."
+            secondary="Try clearing your search, a different word, or browse by date below."
+            actionLabel={query.trim() ? 'Clear search' : undefined}
+            onAction={query.trim() ? () => setQuery('') : undefined}
+          />
         )}
         {entries.length === 0 && (
-          <Caption color={palette.textFaint}>
-            Nothing here yet. Whenever you're ready, tap Write — there's no wrong way to do this.
-          </Caption>
+          <EmptyState
+            glyph="✎"
+            message="This is a place to put down what you're carrying."
+            secondary="You don't need to know where to begin."
+            actionLabel="Write something"
+            onAction={() => router.push('/journal/new')}
+          />
         )}
         {filtered.map((e, i) => (
           <Animated.View key={e.id} entering={FadeInUp.delay(Math.min(i, 8) * 40).duration(320)}>
@@ -152,7 +172,7 @@ function JournalHomeContent() {
 
 function WriteButton() {
   const { palette } = useTheme();
-  const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
+  const haptics = useHaptics();
   const press = useSharedValue(0);
   const cardStyle = useAnimatedStyle(() => ({ transform: [{ scale: interpolate(press.value, [0, 1], [1, 0.97]) }] }));
 
@@ -162,7 +182,7 @@ function WriteButton() {
         onPressIn={() => { press.value = withTiming(1, { duration: 100 }); }}
         onPressOut={() => { press.value = withTiming(0, { duration: 180 }); }}
         onPress={() => {
-          if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+          haptics.gentleArrival();
           router.push('/journal/new');
         }}
         style={styles.writeWrap}
@@ -194,23 +214,56 @@ function EntryCard({ entry }: { entry: JournalEntry }) {
   const { palette } = useTheme();
   const ref = useRef<View>(null);
   const navigateWithWipe = useNavigateWithWipe();
+  const togglePin = useJournalStore((s) => s.togglePin);
+  const removeEntry = useJournalStore((s) => s.remove);
   const mood = entry.mood ? MOOD_BY_ID[entry.mood] : null;
   const snippet = entry.text.trim().split('\n')[0].slice(0, 90) || 'Empty entry';
 
+  const confirmDelete = () => {
+    Alert.alert('Delete this entry?', "This can't be undone.", [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => removeEntry(entry.id) },
+    ]);
+  };
+
+  const actions = [
+    { label: entry.pinned ? 'Unpin' : 'Pin', onPress: () => togglePin(entry.id) },
+    { label: 'Edit', onPress: () => router.push({ pathname: '/journal/new', params: { id: entry.id } }) },
+    { label: 'Export', onPress: () => exportJournal([entry]) },
+    { label: 'Delete', onPress: confirmDelete },
+  ];
+  const { visible, open, close } = useLongPressActions(actions.length);
+
   return (
-    <Pressable
-      ref={ref}
-      onPress={() => navigateWithWipe(ref, mood?.color ?? palette.surfaceRaised, `/journal/${entry.id}`)}
-      style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-        {mood && (
-          <Caption color={mood.color}>{WEATHER_BY_MOOD[entry.mood as keyof typeof WEATHER_BY_MOOD].glyph}</Caption>
-        )}
-        <Caption color={palette.textFaint}>{formatShortTimestamp(entry.createdAt)}</Caption>
-      </View>
-      <Body numberOfLines={2}>{snippet}</Body>
-    </Pressable>
+    <>
+      <Pressable
+        ref={ref}
+        onPress={() => navigateWithWipe(ref, mood?.color ?? palette.surfaceRaised, `/journal/${entry.id}`)}
+        onLongPress={open}
+        delayLongPress={420}
+        style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}
+        accessibilityHint="Double tap and hold to pin, edit, export, or delete"
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+          {entry.pinned && <Caption color={palette.accent}>📌</Caption>}
+          {mood && (
+            <Caption color={mood.color}>{WEATHER_BY_MOOD[entry.mood as keyof typeof WEATHER_BY_MOOD].glyph}</Caption>
+          )}
+          <Caption color={palette.textFaint}>{formatShortTimestamp(entry.createdAt)}</Caption>
+        </View>
+        <Body numberOfLines={2}>{snippet}</Body>
+        <Pressable
+          onPress={open}
+          hitSlop={10}
+          style={styles.moreDot}
+          accessibilityLabel="More options for this entry"
+          accessibilityRole="button"
+        >
+          <Caption color={palette.textFaint}>•••</Caption>
+        </Pressable>
+      </Pressable>
+      <ShortcutSheet visible={visible} onClose={close} actions={actions} title="Entry" />
+    </>
   );
 }
 
@@ -250,7 +303,16 @@ const styles = StyleSheet.create({
   dayChip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: radii.round, borderWidth: 1 },
   writeWrap: { borderRadius: radii.lg, overflow: 'hidden' },
   writeFill: { paddingVertical: spacing.md, alignItems: 'center' },
-  card: { padding: spacing.md, borderRadius: radii.md, borderWidth: 1 },
+  card: { padding: spacing.md, borderRadius: radii.md, borderWidth: 1, paddingRight: 40 },
+  moreDot: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   hintsBox: { marginTop: spacing.lg, padding: spacing.md, borderRadius: radii.md, borderWidth: 1 },
   weatherStrip: { flexDirection: 'row', gap: 10, marginTop: spacing.md, alignItems: 'center' },
   weatherDay: { alignItems: 'center', justifyContent: 'center' },

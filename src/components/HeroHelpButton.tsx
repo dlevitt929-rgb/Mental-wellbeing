@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -14,7 +13,7 @@ import { Headline, Caption } from '@/theme/Type';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radii, spacing } from '@/theme/tokens';
 import { hexToRgba } from '@/utils/color';
-import { useSettingsStore } from '@/store/useSettingsStore';
+import { useHaptics } from '@/hooks/useHaptics';
 import { useCalmMotion } from '@/hooks/useCalmMotion';
 
 /**
@@ -24,7 +23,7 @@ import { useCalmMotion } from '@/hooks/useCalmMotion';
  */
 export function HeroHelpButton() {
   const { palette } = useTheme();
-  const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
+  const { gentleArrival } = useHaptics();
   const { reduced } = useCalmMotion();
   const press = useSharedValue(0);
   const pulse = useSharedValue(0);
@@ -51,7 +50,7 @@ export function HeroHelpButton() {
           press.value = withTiming(0, { duration: 180 });
         }}
         onPress={() => {
-          if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+          gentleArrival();
           router.push('/panic?feeling=panicking');
         }}
         style={styles.wrap}

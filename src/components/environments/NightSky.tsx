@@ -5,6 +5,7 @@ import Animated, { useAnimatedStyle, interpolate } from 'react-native-reanimated
 import { useSlowLoop } from './useSlowLoop';
 import { useSmoothedNumber } from './useSmoothedNumber';
 import { useCalmMotion } from '@/hooks/useCalmMotion';
+import { useVisualTier } from '@/hooks/useVisualTier';
 
 const { width, height } = Dimensions.get('window');
 
@@ -28,11 +29,15 @@ interface NightSkyProps {
  *  glow, no stars, nothing that reads as "still night" in daylight. */
 export function NightSky({ breathIntensity = 0.3, starCount = 34, scheme = 'dark' }: NightSkyProps) {
   const { reduced } = useCalmMotion();
+  const tier = useVisualTier();
   const isLight = scheme === 'light';
+  // Full skies look lovely but thirty-plus independently animated stars is
+  // real work on a modest device — Reduced/Minimal keep the mood with fewer.
+  const effectiveStarCount = tier === 'full' ? starCount : Math.min(starCount, 10);
 
   const stars = useMemo<Star[]>(
     () =>
-      Array.from({ length: starCount }, () => ({
+      Array.from({ length: effectiveStarCount }, () => ({
         x: Math.random() * width,
         y: Math.random() * height * 0.75,
         size: 1 + Math.random() * 2,
@@ -40,7 +45,7 @@ export function NightSky({ breathIntensity = 0.3, starCount = 34, scheme = 'dark
         delay: Math.random() * 4000,
         baseOpacity: 0.25 + Math.random() * 0.55,
       })),
-    [starCount],
+    [effectiveStarCount],
   );
 
   return (

@@ -16,7 +16,14 @@ import { useWorryStore } from '@/store/useWorryStore';
 import { useJournalStore } from '@/store/useJournalStore';
 import { useMemoriesStore } from '@/store/useMemoriesStore';
 import { EnvironmentPicker } from '@/components/EnvironmentPicker';
-import { Appearance } from '@/store/useSettingsStore';
+import { Appearance, VisualEffects } from '@/store/useSettingsStore';
+import { useHaptics } from '@/hooks/useHaptics';
+
+const VISUAL_EFFECTS_OPTIONS: { id: VisualEffects; label: string }[] = [
+  { id: 'auto', label: 'Automatic' },
+  { id: 'full', label: 'Full' },
+  { id: 'reduced', label: 'Reduced' },
+];
 
 const APPEARANCE_OPTIONS: { id: Appearance; label: string }[] = [
   { id: 'light', label: 'Light' },
@@ -40,7 +47,10 @@ export default function Settings() {
   const sleepEnvironment = useSettingsStore((s) => s.sleepEnvironment);
   const setCalmEnvironment = useSettingsStore((s) => s.setCalmEnvironment);
   const setSleepEnvironment = useSettingsStore((s) => s.setSleepEnvironment);
+  const visualEffects = useSettingsStore((s) => s.visualEffects);
+  const setVisualEffects = useSettingsStore((s) => s.setVisualEffects);
 
+  const { warning } = useHaptics();
   const sessions = useSessionStore((s) => s.sessions);
   const calmPlanCount = useCalmPlanStore((s) => s.entries.length);
   const contactsCount = useContactsStore((s) => s.contacts.length);
@@ -59,6 +69,7 @@ export default function Settings() {
           text: 'Clear everything',
           style: 'destructive',
           onPress: () => {
+            warning();
             useSessionStore.setState({ sessions: [], current: null });
             useCalmPlanStore.setState({ entries: [] });
             useContactsStore.setState({ contacts: [] });
@@ -99,6 +110,30 @@ export default function Settings() {
         </View>
       </Section>
 
+      <Section title="Performance">
+        <Body color={palette.textMuted} style={{ marginBottom: spacing.sm }}>
+          Visual effects — Automatic trusts your device; Reduced eases up on animation and detail
+          for a smoother, lighter feel.
+        </Body>
+        <View style={styles.appearanceRow}>
+          {VISUAL_EFFECTS_OPTIONS.map((opt) => {
+            const active = visualEffects === opt.id;
+            return (
+              <Pressable
+                key={opt.id}
+                onPress={() => setVisualEffects(opt.id)}
+                style={[
+                  styles.appearanceChip,
+                  { borderColor: active ? palette.accent : palette.border, backgroundColor: active ? palette.surfaceRaised : 'transparent' },
+                ]}
+              >
+                <Body color={active ? palette.text : palette.textMuted}>{opt.label}</Body>
+              </Pressable>
+            );
+          })}
+        </View>
+      </Section>
+
       <Section title="Preferences">
         <ToggleRow label="Sound" value={soundEnabled} onChange={setSoundEnabled} />
         <ToggleRow label="Haptics" value={hapticsEnabled} onChange={setHapticsEnabled} />
@@ -118,11 +153,20 @@ export default function Settings() {
         <Body color={palette.textMuted} style={{ marginBottom: spacing.sm }}>
           During breathing & calming sessions
         </Body>
-        <EnvironmentPicker value={calmEnvironment} onChange={setCalmEnvironment} />
+        <EnvironmentPicker value={calmEnvironment} onChange={setCalmEnvironment} enableShortcuts />
         <Body color={palette.textMuted} style={{ marginTop: spacing.lg, marginBottom: spacing.sm }}>
           At night
         </Body>
-        <EnvironmentPicker value={sleepEnvironment} onChange={setSleepEnvironment} options={['night', 'rain', 'ocean', 'clouds']} />
+        <EnvironmentPicker
+          value={sleepEnvironment}
+          onChange={setSleepEnvironment}
+          options={['night', 'rain', 'ocean', 'clouds']}
+          enableShortcuts
+        />
+        <Caption color={palette.textFaint} style={{ marginTop: spacing.sm }}>
+          Press and hold any of these for quick shortcuts — preview the sound, or set it as your
+          favourite or default.
+        </Caption>
       </Section>
 
       <Section title="Your privacy">

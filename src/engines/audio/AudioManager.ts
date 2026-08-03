@@ -2,6 +2,7 @@ import { createAudioPlayer, setAudioModeAsync, AudioPlayer } from 'expo-audio';
 import { AppState, AppStateStatus } from 'react-native';
 import { create } from 'zustand';
 import { SOUND_SOURCES, SoundId } from '@/engines/soundEngine';
+import { logAudioEvent } from '@/engines/perfInstrumentation';
 
 /**
  * The single source of truth for ambient audio in the app.
@@ -124,6 +125,7 @@ export const AudioManager = {
       return;
     }
 
+    logAudioEvent('request', { ownerId, soundId, previousOwner: currentOwner, previousSound: currentSound });
     baseVolume = targetVolume;
 
     if (currentSound === null) {
@@ -167,6 +169,7 @@ export const AudioManager = {
   release(ownerId: string, fadeMs = 900) {
     const { ownerId: currentOwner } = useAudioManagerStore.getState();
     if (currentOwner !== ownerId) return;
+    logAudioEvent('release', { ownerId });
     const mySeq = ++requestSeq;
     const p = activePlayer();
     rampVolume(p, 0, fadeMs, () => {

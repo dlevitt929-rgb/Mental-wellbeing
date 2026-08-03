@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, TextInput, Pressable } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated';
 import {
   useAudioRecorder,
@@ -17,15 +17,19 @@ import { spacing, radii } from '@/theme/tokens';
 import { fonts } from '@/theme/useAppFonts';
 import { useMemoriesStore } from '@/store/useMemoriesStore';
 import { AudioManager } from '@/engines/audio/AudioManager';
+import { EmptyState } from '@/components/EmptyState';
 
 type Mode = 'list' | 'write' | 'record';
 
 export default function Memories() {
   const { palette } = useTheme();
+  const params = useLocalSearchParams<{ mode?: Mode }>();
   const memories = useMemoriesStore((s) => s.memories);
   const addText = useMemoriesStore((s) => s.addText);
   const remove = useMemoriesStore((s) => s.remove);
-  const [mode, setMode] = useState<Mode>('list');
+  // A long-press shortcut ("Record a voice note") can land here already
+  // pointed at record mode instead of making someone tap through the list first.
+  const [mode, setMode] = useState<Mode>(params.mode === 'record' ? 'record' : 'list');
   const [text, setText] = useState('');
 
   const saveText = () => {
@@ -53,7 +57,12 @@ export default function Memories() {
 
           <View style={{ gap: 10 }}>
             {memories.length === 0 && (
-              <Caption color={palette.textFaint}>Nothing saved yet.</Caption>
+              <EmptyState
+                glyph="✦"
+                message="Save something from a better moment for a harder one."
+                actionLabel="Add a memory"
+                onAction={() => setMode('write')}
+              />
             )}
             {memories.map((m) => (
               <Animated.View

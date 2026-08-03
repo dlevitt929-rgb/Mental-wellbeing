@@ -12,6 +12,7 @@ import { fonts } from '@/theme/useAppFonts';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useMemoriesStore } from '@/store/useMemoriesStore';
 import { Session, Technique } from '@/types';
+import { EXIT_COPY } from '@/theme/exitCopy';
 
 const HELPED_OPTIONS: { label: string; value: Session['helped'] }[] = [
   { label: 'Much better', value: 'much-better' },
@@ -91,7 +92,7 @@ export default function Reflection() {
               />
             ))}
             <CalmButton
-              label="Skip"
+              label={EXIT_COPY.notRightNow}
               variant="ghost"
               onPress={() => {
                 setWhatHelped('skipped');

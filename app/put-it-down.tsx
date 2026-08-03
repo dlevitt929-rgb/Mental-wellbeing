@@ -12,7 +12,6 @@ import Animated, {
   FadeInDown,
   LinearTransition,
 } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import { Screen } from '@/components/Screen';
 import { CalmButton } from '@/components/CalmButton';
 import { Whisper, Body, Caption } from '@/theme/Type';
@@ -21,8 +20,8 @@ import { spacing, radii } from '@/theme/tokens';
 import { fonts } from '@/theme/useAppFonts';
 import { hexToRgba } from '@/utils/color';
 import { useWorryStore } from '@/store/useWorryStore';
-import { useSettingsStore } from '@/store/useSettingsStore';
 import { useSessionStore } from '@/store/useSessionStore';
+import { useHaptics } from '@/hooks/useHaptics';
 
 const { height } = Dimensions.get('window');
 const DROP_THRESHOLD = height * 0.28;
@@ -32,7 +31,7 @@ export default function PutItDown() {
   const [text, setText] = useState('');
   const [card, setCard] = useState<string | null>(null);
   const [showDrawer, setShowDrawer] = useState(false);
-  const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
+  const haptics = useHaptics();
   const add = useWorryStore((s) => s.add);
   const resolve = useWorryStore((s) => s.resolve);
   const worries = useWorryStore((s) => s.worries);
@@ -77,7 +76,7 @@ export default function PutItDown() {
             onSetAside={(t) => {
               add(t, false);
               logTechnique('worry-postponement');
-              if (hapticsEnabled) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+              haptics.softConfirmation();
               setCard(null);
             }}
           />

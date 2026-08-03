@@ -11,6 +11,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { spacing, radii } from '@/theme/tokens';
 import { CAMERA_CHALLENGES } from '@/data/grounding';
 import { useSessionStore } from '@/store/useSessionStore';
+import { EXIT_COPY } from '@/theme/exitCopy';
 
 export default function CameraGrounding() {
   const { palette } = useTheme();
@@ -37,7 +38,7 @@ export default function CameraGrounding() {
             style={{ marginTop: spacing.xl, width: '100%' }}
             onPress={requestPermission}
           />
-          <CalmButton label="Not now" variant="ghost" onPress={() => router.back()} />
+          <CalmButton label={EXIT_COPY.notRightNow} variant="ghost" onPress={() => router.back()} />
         </View>
       </Screen>
     );

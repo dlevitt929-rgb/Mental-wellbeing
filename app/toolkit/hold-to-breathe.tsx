@@ -1,9 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Pressable, Dimensions } from 'react-native';
 import { router } from 'expo-router';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, FadeIn } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
 import { Screen } from '@/components/Screen';
 import { Environment } from '@/components/environments/Environment';
 import { SessionSoundToggle } from '@/components/SessionSoundToggle';
@@ -14,6 +13,7 @@ import { hexToRgba } from '@/utils/color';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useSessionAmbience } from '@/hooks/useSessionAmbience';
+import { useHaptics } from '@/hooks/useHaptics';
 
 const { width } = Dimensions.get('window');
 const BASE_SIZE = Math.min(width * 0.58, 240);
@@ -34,7 +34,7 @@ const PHASE_LABEL: Record<Phase, string> = {
 export default function HoldToBreatheToolkit() {
   const { palette } = useTheme();
   const calmEnvironment = useSettingsStore((s) => s.calmEnvironment);
-  const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
+  const haptics = useHaptics();
   const logTechnique = useSessionStore((s) => s.logTechnique);
 
   const [phase, setPhase] = useState<Phase>('idle');
@@ -60,9 +60,7 @@ export default function HoldToBreatheToolkit() {
 
   useEffect(() => clearTimers, []);
 
-  const pulse = useCallback(() => {
-    if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-  }, [hapticsEnabled]);
+  const pulse = haptics.breathingPulse;
 
   const onPressIn = () => {
     pressedRef.current = true;

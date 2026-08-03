@@ -6,6 +6,7 @@ import { SessionSoundToggle } from '@/components/SessionSoundToggle';
 import { MessageBeat } from '@/components/MessageBeat';
 import { CalmButton } from '@/components/CalmButton';
 import { Title } from '@/theme/Type';
+import { EXIT_COPY } from '@/theme/exitCopy';
 import { spacing } from '@/theme/tokens';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
@@ -31,7 +32,7 @@ export default function SelfCompassionToolkit() {
     return (
       <Screen center backdrop={backdrop}>
         <Title center>Try saying that to yourself again sometime.</Title>
-        <CalmButton label="Done" variant="primary" style={{ marginTop: spacing.xl }} onPress={() => router.back()} />
+        <CalmButton label={EXIT_COPY.doneForNow} variant="primary" style={{ marginTop: spacing.xl }} onPress={() => router.back()} />
       </Screen>
     );
   }

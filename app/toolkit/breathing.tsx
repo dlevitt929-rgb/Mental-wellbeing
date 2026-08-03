@@ -9,6 +9,7 @@ import { CalmButton } from '@/components/CalmButton';
 import { Title, Body, Caption } from '@/theme/Type';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing, radii } from '@/theme/tokens';
+import { EXIT_COPY } from '@/theme/exitCopy';
 import { BREATHING_TECHNIQUES } from '@/engines/breathing';
 import { BreathingTechniqueId, BreathingPhase } from '@/types';
 import { useSessionStore } from '@/store/useSessionStore';
@@ -33,7 +34,7 @@ export default function BreathingToolkit() {
     return (
       <Screen center backdrop={backdrop}>
         <Title center>Nice.</Title>
-        <CalmButton label="Done" variant="primary" style={{ marginTop: spacing.xl }} onPress={() => router.back()} />
+        <CalmButton label={EXIT_COPY.doneForNow} variant="primary" style={{ marginTop: spacing.xl }} onPress={() => router.back()} />
         <CalmButton label="One more round" variant="ghost" onPress={() => { setComplete(false); setRunning(true); }} />
       </Screen>
     );

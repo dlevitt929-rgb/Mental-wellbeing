@@ -18,6 +18,9 @@ interface SettingsState {
   analyticsOptIn: boolean; // always false unless the user explicitly opts in; nothing is sent anywhere in this build regardless
   calmEnvironment: EnvironmentId;
   sleepEnvironment: EnvironmentId;
+  /** Explicitly chosen via long-press ("Set as favourite") — distinct from
+   *  the breathing/sleep defaults, and only ever set by a deliberate action. */
+  favoriteEnvironment: EnvironmentId | null;
   journalPatternHintsEnabled: boolean;
   /** From onboarding — which situations bring someone here most, used to
    *  gently reorder Home rather than as anything shown back to them as data. */
@@ -34,6 +37,7 @@ interface SettingsState {
   setAnalyticsOptIn: (v: boolean) => void;
   setCalmEnvironment: (v: EnvironmentId) => void;
   setSleepEnvironment: (v: EnvironmentId) => void;
+  setFavoriteEnvironment: (v: EnvironmentId | null) => void;
   setJournalPatternHintsEnabled: (v: boolean) => void;
   setCommonSituations: (v: Feeling[]) => void;
   setPresencePreference: (v: PresencePreference) => void;
@@ -52,6 +56,7 @@ export const useSettingsStore = create<SettingsState>()(
       analyticsOptIn: false,
       calmEnvironment: 'abstract',
       sleepEnvironment: 'night',
+      favoriteEnvironment: null,
       journalPatternHintsEnabled: true,
       commonSituations: [],
       presencePreference: 'both',
@@ -65,6 +70,7 @@ export const useSettingsStore = create<SettingsState>()(
       setAnalyticsOptIn: (v) => set({ analyticsOptIn: v }),
       setCalmEnvironment: (v) => set({ calmEnvironment: v }),
       setSleepEnvironment: (v) => set({ sleepEnvironment: v }),
+      setFavoriteEnvironment: (v) => set({ favoriteEnvironment: v }),
       setJournalPatternHintsEnabled: (v) => set({ journalPatternHintsEnabled: v }),
       setCommonSituations: (v) => set({ commonSituations: v }),
       setPresencePreference: (v) => set({ presencePreference: v }),

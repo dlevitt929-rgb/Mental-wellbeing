@@ -12,6 +12,7 @@ import { fonts } from '@/theme/useAppFonts';
 import { useJournalSecurityStore } from '@/store/useJournalSecurityStore';
 import { useJournalStore } from '@/store/useJournalStore';
 import { exportJournal } from '@/utils/journalExport';
+import { useHaptics } from '@/hooks/useHaptics';
 
 export default function JournalPrivacy() {
   const { palette } = useTheme();
@@ -23,6 +24,7 @@ export default function JournalPrivacy() {
   const setPinHash = useJournalSecurityStore((s) => s.setPinHash);
   const entries = useJournalStore((s) => s.entries);
   const removeAll = useJournalStore((s) => s.removeAll);
+  const { warning } = useHaptics();
 
   const [hasBiometricHardware, setHasBiometricHardware] = useState(false);
   const [settingPin, setSettingPin] = useState<null | 'first' | 'confirm'>(null);
@@ -83,7 +85,14 @@ export default function JournalPrivacy() {
       `This permanently removes all ${entries.length} entries from this device. This can't be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete everything', style: 'destructive', onPress: removeAll },
+        {
+          text: 'Delete everything',
+          style: 'destructive',
+          onPress: () => {
+            warning();
+            removeAll();
+          },
+        },
       ],
     );
   };

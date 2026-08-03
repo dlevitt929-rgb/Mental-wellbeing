@@ -4,6 +4,7 @@ import { Screen } from '@/components/Screen';
 import { GroundingSequence } from '@/components/GroundingSequence';
 import { CalmButton } from '@/components/CalmButton';
 import { Title } from '@/theme/Type';
+import { EXIT_COPY } from '@/theme/exitCopy';
 import { spacing } from '@/theme/tokens';
 import { useSessionStore } from '@/store/useSessionStore';
 
@@ -23,7 +24,7 @@ export default function SensoryToolkit() {
     return (
       <Screen center>
         <Title center>Back in your body.</Title>
-        <CalmButton label="Done" variant="primary" style={{ marginTop: spacing.xl }} onPress={() => router.back()} />
+        <CalmButton label={EXIT_COPY.doneForNow} variant="primary" style={{ marginTop: spacing.xl }} onPress={() => router.back()} />
       </Screen>
     );
   }

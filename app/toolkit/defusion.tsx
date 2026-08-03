@@ -8,6 +8,7 @@ import { Whisper, Body } from '@/theme/Type';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing, radii } from '@/theme/tokens';
 import { fonts } from '@/theme/useAppFonts';
+import { EXIT_COPY } from '@/theme/exitCopy';
 import { useSessionStore } from '@/store/useSessionStore';
 
 export default function DefusionToolkit() {
@@ -20,7 +21,7 @@ export default function DefusionToolkit() {
     return (
       <Screen center>
         <Whisper center>That’s a thought, not a fact.</Whisper>
-        <CalmButton label="Done" variant="primary" style={{ marginTop: spacing.xl }} onPress={() => router.back()} />
+        <CalmButton label={EXIT_COPY.doneForNow} variant="primary" style={{ marginTop: spacing.xl }} onPress={() => router.back()} />
       </Screen>
     );
   }

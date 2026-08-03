@@ -3,16 +3,15 @@ import { Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
-import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/theme/ThemeProvider';
 import { Caption } from '@/theme/Type';
 import { radii, spacing } from '@/theme/tokens';
-import { useSettingsStore } from '@/store/useSettingsStore';
+import { useHaptics } from '@/hooks/useHaptics';
 
 /** Always one tap away, on every non-emergency screen. */
 export function FloatingHelpButton() {
   const { palette, scheme } = useTheme();
-  const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
+  const { gentleArrival } = useHaptics();
   const scale = useSharedValue(1);
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
@@ -26,7 +25,7 @@ export function FloatingHelpButton() {
           scale.value = withTiming(1, { duration: 140 });
         }}
         onPress={() => {
-          if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+          gentleArrival();
           router.push('/panic');
         }}
       >

@@ -11,6 +11,7 @@ import { CloudDrift } from './CloudDrift';
 import { EnvironmentId, EnvironmentProps } from './types';
 import { hexToRgba } from '@/utils/color';
 import { useTheme } from '@/theme/ThemeProvider';
+import { useVisualTier } from '@/hooks/useVisualTier';
 
 function intensityForPhase(phase: EnvironmentProps['breathPhase']): number {
   switch (phase) {
@@ -36,6 +37,7 @@ interface Props extends EnvironmentProps {
  * place, same calm, different quality of light. */
 export function Environment({ id, breathPhase = null, warmth = 0, intensityOverride = null }: Props) {
   const { scheme } = useTheme();
+  const tier = useVisualTier();
   const intensity = intensityOverride ?? intensityForPhase(breathPhase);
   const isLight = scheme === 'light';
 
@@ -45,7 +47,7 @@ export function Environment({ id, breathPhase = null, warmth = 0, intensityOverr
 
   return (
     <View style={StyleSheet.absoluteFill}>
-      {renderEnvironment(id, intensity, isLight)}
+      {renderEnvironment(id, intensity, isLight, tier)}
       <Animated.View style={[StyleSheet.absoluteFill, warmthStyle]} pointerEvents="none">
         <LinearGradient
           colors={isLight ? [hexToRgba('#E0985A', 0.24), hexToRgba('#9583C9', 0)] : [hexToRgba('#E7A65C', 0.28), hexToRgba('#8E7CC3', 0)]}
@@ -58,7 +60,7 @@ export function Environment({ id, breathPhase = null, warmth = 0, intensityOverr
   );
 }
 
-function renderEnvironment(id: EnvironmentId, intensity: number, isLight: boolean) {
+function renderEnvironment(id: EnvironmentId, intensity: number, isLight: boolean, tier: 'full' | 'reduced' | 'minimal') {
   const scheme = isLight ? 'light' : 'dark';
   switch (id) {
     case 'ocean':
@@ -69,7 +71,10 @@ function renderEnvironment(id: EnvironmentId, intensity: number, isLight: boolea
       return (
         <>
           <NightSky breathIntensity={intensity} starCount={16} scheme={scheme} />
-          <RainStreaks scheme={scheme} />
+          {/* The streak overlay is the most animation-heavy layer here and
+              purely decorative — the rain sound already carries the mood,
+              so it's the first thing to drop below Full. */}
+          {tier === 'full' && <RainStreaks scheme={scheme} />}
         </>
       );
     case 'fire':

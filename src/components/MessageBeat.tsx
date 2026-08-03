@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import { Whisper } from '@/theme/Type';
-import { useSettingsStore } from '@/store/useSettingsStore';
+import { useHaptics } from '@/hooks/useHaptics';
 import { AudioManager } from '@/engines/audio/AudioManager';
 
 interface Beat {
@@ -25,7 +24,7 @@ interface MessageBeatProps {
  *  An empty-text beat is a deliberate silence — nothing renders, the hold still counts down. */
 export function MessageBeat({ beats, onDone, loop, gapMs = 3200, paused, duckAmbience = true }: MessageBeatProps) {
   const [index, setIndex] = useState(0);
-  const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
+  const { breathingPulse } = useHaptics();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const normalized: Beat[] = beats.map((b) => (typeof b === 'string' ? { text: b } : b));
@@ -39,7 +38,7 @@ export function MessageBeat({ beats, onDone, loop, gapMs = 3200, paused, duckAmb
 
   useEffect(() => {
     if (paused) return;
-    if (hapticsEnabled && normalized[index]?.text) Haptics.selectionAsync().catch(() => {});
+    if (normalized[index]?.text) breathingPulse();
     const hold = normalized[index]?.holdMs ?? gapMs;
     timer.current = setTimeout(() => {
       if (index < normalized.length - 1) {

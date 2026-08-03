@@ -8,6 +8,7 @@ import { CalmButton } from '@/components/CalmButton';
 import { Title, Body, Whisper, Display } from '@/theme/Type';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing, radii } from '@/theme/tokens';
+import { EXIT_COPY } from '@/theme/exitCopy';
 import { BREATHING_TECHNIQUES } from '@/engines/breathing';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
@@ -36,7 +37,7 @@ export default function EmotionalRegulationToolkit() {
           <Body color={palette.textMuted} center style={{ marginTop: spacing.xl }}>
             It started at {Math.round(startIntensity * 100)}%. Feelings peak, and then they fall — even without you doing anything else.
           </Body>
-          <CalmButton label="Done" variant="primary" size="large" style={{ marginTop: spacing.xl, width: '100%' }} onPress={() => router.back()} />
+          <CalmButton label={EXIT_COPY.doneForNow} variant="primary" size="large" style={{ marginTop: spacing.xl, width: '100%' }} onPress={() => router.back()} />
         </View>
       </Screen>
     );

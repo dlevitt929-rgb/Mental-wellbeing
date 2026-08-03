@@ -18,6 +18,7 @@ import { useSessionAmbience } from '@/hooks/useSessionAmbience';
 import { useSessionOnMount } from '@/hooks/useSessionOnMount';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useSessionStore } from '@/store/useSessionStore';
+import { EXIT_COPY } from '@/theme/exitCopy';
 
 const SENSORY_STEPS = [
   'Hold something cold, or run your wrists under the tap.',
@@ -135,7 +136,7 @@ export default function DontThinkJustFollow() {
         {stage === 'done' && (
           <Animated.View entering={FadeIn.duration(800)} style={{ alignItems: 'center' }}>
             <Whisper center>That's the whole thing.</Whisper>
-            <CalmButton label="Done" variant="primary" style={{ marginTop: spacing.xl }} onPress={finish} />
+            <CalmButton label={EXIT_COPY.doneForNow} variant="primary" style={{ marginTop: spacing.xl }} onPress={finish} />
           </Animated.View>
         )}
       </View>

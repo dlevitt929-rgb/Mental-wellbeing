@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import { Whisper } from '@/theme/Type';
 import { CalmButton } from '@/components/CalmButton';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/tokens';
-import { useSettingsStore } from '@/store/useSettingsStore';
+import { useHaptics } from '@/hooks/useHaptics';
 
 interface GroundingSequenceProps {
   steps: string[];
@@ -17,10 +16,10 @@ interface GroundingSequenceProps {
 export function GroundingSequence({ steps, onComplete, confirmLabel = 'Found it' }: GroundingSequenceProps) {
   const [index, setIndex] = useState(0);
   const { palette } = useTheme();
-  const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
+  const { softConfirmation } = useHaptics();
 
   const advance = () => {
-    if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    softConfirmation();
     if (index < steps.length - 1) {
       setIndex((i) => i + 1);
     } else {

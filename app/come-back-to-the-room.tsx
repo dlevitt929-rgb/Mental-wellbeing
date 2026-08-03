@@ -2,17 +2,18 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, FadeIn } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import { Screen } from '@/components/Screen';
 import { Environment } from '@/components/environments/Environment';
 import { CalmButton } from '@/components/CalmButton';
 import { Whisper, Body, Caption } from '@/theme/Type';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/tokens';
+import { EXIT_COPY } from '@/theme/exitCopy';
 import { useSessionAmbience } from '@/hooks/useSessionAmbience';
 import { useSessionOnMount } from '@/hooks/useSessionOnMount';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useSessionStore } from '@/store/useSessionStore';
+import { useHaptics } from '@/hooks/useHaptics';
 
 const STEPS: { prompt: string; awayMs: number }[] = [
   { prompt: 'Look at the farthest object in the room. Really look at it.', awayMs: 9000 },
@@ -31,7 +32,7 @@ type Stage = 'reveal' | 'away' | 'done';
 export default function ComeBackToTheRoom() {
   const { palette } = useTheme();
   const calmEnvironment = useSettingsStore((s) => s.calmEnvironment);
-  const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
+  const { breathingPulse, softConfirmation } = useHaptics();
   const logTechnique = useSessionStore((s) => s.logTechnique);
   const endSession = useSessionStore((s) => s.end);
 
@@ -60,14 +61,10 @@ export default function ComeBackToTheRoom() {
     } else if (stage === 'away') {
       dim.value = withTiming(0.93, { duration: 1200, easing: Easing.inOut(Easing.sin) });
       const awayMs = STEPS[stepIndex].awayMs;
-      if (hapticsEnabled) {
-        pulseInterval.current = setInterval(() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-        }, 2500);
-      }
+      pulseInterval.current = setInterval(breathingPulse, 2500);
       const t = setTimeout(() => {
         if (pulseInterval.current) clearInterval(pulseInterval.current);
-        if (hapticsEnabled) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        softConfirmation();
         const isLast = stepIndex === STEPS.length - 1;
         if (isLast) {
           logTechnique('look-away-grounding');
@@ -113,7 +110,7 @@ export default function ComeBackToTheRoom() {
         ) : (
           <Animated.View entering={FadeIn.duration(800)} style={{ alignItems: 'center' }}>
             <Whisper center>You're here. Right now, in this room.</Whisper>
-            <CalmButton label="Done" variant="primary" style={{ marginTop: spacing.xl }} onPress={finish} />
+            <CalmButton label={EXIT_COPY.doneForNow} variant="primary" style={{ marginTop: spacing.xl }} onPress={finish} />
           </Animated.View>
         )}
       </View>

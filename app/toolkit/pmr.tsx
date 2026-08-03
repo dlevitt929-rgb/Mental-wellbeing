@@ -6,6 +6,7 @@ import { SessionSoundToggle } from '@/components/SessionSoundToggle';
 import { PMRPlayer } from '@/components/players/PMRPlayer';
 import { CalmButton } from '@/components/CalmButton';
 import { Title } from '@/theme/Type';
+import { EXIT_COPY } from '@/theme/exitCopy';
 import { spacing } from '@/theme/tokens';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
@@ -23,7 +24,7 @@ export default function PmrToolkit() {
     return (
       <Screen center backdrop={backdrop}>
         <Title center>Let that heaviness settle.</Title>
-        <CalmButton label="Done" variant="primary" style={{ marginTop: spacing.xl }} onPress={() => router.back()} />
+        <CalmButton label={EXIT_COPY.doneForNow} variant="primary" style={{ marginTop: spacing.xl }} onPress={() => router.back()} />
       </Screen>
     );
   }

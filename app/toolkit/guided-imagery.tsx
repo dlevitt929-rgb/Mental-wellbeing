@@ -10,6 +10,7 @@ import { CalmButton } from '@/components/CalmButton';
 import { Title, Body, Whisper } from '@/theme/Type';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/tokens';
+import { EXIT_COPY } from '@/theme/exitCopy';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useSessionAmbience } from '@/hooks/useSessionAmbience';
 import { EnvironmentId } from '@/components/environments/types';
@@ -36,7 +37,7 @@ export default function GuidedImageryToolkit() {
     return (
       <Screen center backdrop={<Environment id={place} warmth={0.5} />}>
         <Title center>You can come back here anytime.</Title>
-        <CalmButton label="Done" variant="primary" style={{ marginTop: spacing.xl }} onPress={() => router.back()} />
+        <CalmButton label={EXIT_COPY.doneForNow} variant="primary" style={{ marginTop: spacing.xl }} onPress={() => router.back()} />
       </Screen>
     );
   }

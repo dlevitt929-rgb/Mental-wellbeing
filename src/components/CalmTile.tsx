@@ -1,7 +1,6 @@
 import React, { useRef } from 'react';
 import { View, Pressable, StyleSheet, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -14,9 +13,11 @@ import { Callout } from '@/theme/Type';
 import { fonts } from '@/theme/useAppFonts';
 import { radii, spacing } from '@/theme/tokens';
 import { hexToRgba } from '@/utils/color';
-import { useSettingsStore } from '@/store/useSettingsStore';
+import { useHaptics } from '@/hooks/useHaptics';
 import { useNavigateWithWipe } from '@/engines/TransitionOverlay';
 import { useCalmMotion } from '@/hooks/useCalmMotion';
+import { useVisualTier } from '@/hooks/useVisualTier';
+import { useLongPressActions, ShortcutSheet, LongPressAction } from '@/components/LongPressMenu';
 
 interface CalmTileProps {
   label: string;
@@ -24,23 +25,30 @@ interface CalmTileProps {
   colors: [string, string];
   route: string;
   wide?: boolean;
+  /** Optional quick shortcuts revealed on long-press — never the only way
+   *  to reach these, the tile still opens its normal flow on a plain tap. */
+  actions?: LongPressAction[];
 }
 
-export function CalmTile({ label, glyph, colors, route, wide }: CalmTileProps) {
+export function CalmTile({ label, glyph, colors, route, wide, actions = [] }: CalmTileProps) {
   const { palette } = useTheme();
-  const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
+  const { gentleArrival } = useHaptics();
   const navigateWithWipe = useNavigateWithWipe();
   const { reduced } = useCalmMotion();
+  const tier = useVisualTier();
   const ref = useRef<View>(null);
+  const { visible, open, close } = useLongPressActions(actions.length);
 
   const press = useSharedValue(0);
   const drift = useSharedValue(0);
 
   React.useEffect(() => {
-    if (reduced) return;
+    // With up to eight tiles on screen at once, this ambient drift is the
+    // single biggest thing Home is animating continuously — skip it below Full.
+    if (reduced || tier !== 'full') return;
     drift.value = withRepeat(withTiming(1, { duration: 7000 + Math.random() * 3000 }), -1, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reduced]);
+  }, [reduced, tier]);
 
   const cardStyle = useAnimatedStyle(() => ({
     transform: [{ scale: interpolate(press.value, [0, 1], [1, 0.96]) }],
@@ -55,7 +63,7 @@ export function CalmTile({ label, glyph, colors, route, wide }: CalmTileProps) {
   }));
 
   const handlePress = () => {
-    if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft).catch(() => {});
+    gentleArrival();
     navigateWithWipe(ref, colors[0], route);
   };
 
@@ -64,6 +72,8 @@ export function CalmTile({ label, glyph, colors, route, wide }: CalmTileProps) {
       <Pressable
         ref={ref}
         onPress={handlePress}
+        onLongPress={actions.length > 0 ? open : undefined}
+        delayLongPress={420}
         onPressIn={() => {
           press.value = withTiming(1, { duration: 120 });
         }}
@@ -71,6 +81,7 @@ export function CalmTile({ label, glyph, colors, route, wide }: CalmTileProps) {
           press.value = withTiming(0, { duration: 220 });
         }}
         style={[styles.tile, { borderColor: hexToRgba(colors[0], 0.28) }]}
+        accessibilityHint={actions.length > 0 ? 'Double tap and hold for quick shortcuts' : undefined}
       >
         <View style={[StyleSheet.absoluteFill, { backgroundColor: palette.surface }]} />
         <Animated.View style={[styles.glow, glowStyle]}>
@@ -83,7 +94,19 @@ export function CalmTile({ label, glyph, colors, route, wide }: CalmTileProps) {
         </Animated.View>
         <Text style={[styles.glyph, { color: colors[0], fontFamily: fonts.displayItalicMedium }]}>{glyph}</Text>
         <Callout style={{ marginTop: 10 }}>{label}</Callout>
+        {actions.length > 0 && (
+          <Pressable
+            onPress={open}
+            hitSlop={10}
+            style={styles.moreDot}
+            accessibilityLabel={`More options for ${label}`}
+            accessibilityRole="button"
+          >
+            <Text style={{ color: colors[0], fontSize: 14 }}>•••</Text>
+          </Pressable>
+        )}
       </Pressable>
+      <ShortcutSheet visible={visible} onClose={close} actions={actions} title={label} />
     </Animated.View>
   );
 }
@@ -106,5 +129,14 @@ const styles = StyleSheet.create({
   },
   glyph: {
     fontSize: 26,
+  },
+  moreDot: {
+    position: 'absolute',
+    top: 8,
+    right: 10,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

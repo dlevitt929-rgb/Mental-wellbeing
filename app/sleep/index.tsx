@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { Environment } from '@/components/environments/Environment';
 import { SessionSoundToggle } from '@/components/SessionSoundToggle';
@@ -18,12 +18,14 @@ import { useModeOnFocus } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/tokens';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
+import { useSleepMemoryStore, WokeReason } from '@/store/useSleepMemoryStore';
 import { useAudioExperience } from '@/hooks/useAudioExperience';
+import { AudioManager } from '@/engines/audio/AudioManager';
 import { soundForEnvironment } from '@/engines/soundEngine';
 import { BREATHING_TECHNIQUES } from '@/engines/breathing';
 import { BreathingPhase } from '@/types';
+import { EnvironmentId } from '@/components/environments/types';
 
-type WokeReason = 'racing' | 'anxious' | 'nightmare' | 'uncomfortable' | 'dontknow' | 'notasleep';
 type NightStep = 'nothing-to-solve' | 'body-scan' | 'pmr' | 'breathing' | 'shuffle' | 'counting' | 'reassurance';
 
 const OPTIONS: { id: WokeReason; label: string }[] = [
@@ -46,11 +48,13 @@ const SEQUENCES: Record<WokeReason, NightStep[]> = {
 
 export default function Sleep() {
   useModeOnFocus('night');
+  const params = useLocalSearchParams<{ reason?: WokeReason; direct?: string; sound?: EnvironmentId }>();
   const start = useSessionStore((s) => s.start);
   const logStep = useSessionStore((s) => s.logStep);
   const logTechnique = useSessionStore((s) => s.logTechnique);
   const endSession = useSessionStore((s) => s.end);
   const sleepEnvironment = useSettingsStore((s) => s.sleepEnvironment);
+  const recordReason = useSleepMemoryStore((s) => s.recordReason);
 
   const [reason, setReason] = useState<WokeReason | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
@@ -63,14 +67,47 @@ export default function Sleep() {
       start('cant-sleep');
       started.current = true;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // A long-press shortcut can jump straight into a known-good setup — "start
+  // what worked before" instead of asking the question again. Router params
+  // can arrive a render or two after mount, so these react to the param
+  // itself rather than assuming it's already there on the very first render.
+  useEffect(() => {
+    if (params.reason) chooseReason(params.reason);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.reason]);
+
+  useEffect(() => {
+    if (params.sound) {
+      setDone(true);
+      AudioManager.request('sleep:sound-picker', soundForEnvironment(params.sound), { volume: 0.4 });
+    }
+  }, [params.sound]);
+
+  const isDirect = params.direct === 'nothing-to-solve';
 
   // Ambient bed plays for the guided part of the session only; the "done" screen
   // hands full control to SoundPicker so the person can choose what to fall asleep to.
-  useAudioExperience(Boolean(reason) && !done, reason ? soundForEnvironment(sleepEnvironment) : null, {
-    volume: 0.24,
-    label: 'sleep:guided',
-  });
+  useAudioExperience(
+    isDirect || (Boolean(reason) && !done),
+    isDirect || reason ? soundForEnvironment(sleepEnvironment) : null,
+    { volume: 0.24, label: 'sleep:guided' },
+  );
+
+  if (isDirect) {
+    return (
+      <Screen center backdrop={<Environment id={sleepEnvironment} />} overlay={<SessionSoundToggle />}>
+        <NothingToSolveTonight
+          onDone={() => {
+            endSession();
+            router.replace('/home');
+          }}
+        />
+      </Screen>
+    );
+  }
 
   const sequence = reason ? SEQUENCES[reason] : [];
 
@@ -85,6 +122,7 @@ export default function Sleep() {
   const chooseReason = (r: WokeReason) => {
     setReason(r);
     logStep(`sleep:${r}`);
+    recordReason(r);
   };
 
   const finish = () => {
@@ -94,21 +132,8 @@ export default function Sleep() {
 
   const backdrop = <Environment id={sleepEnvironment} breathPhase={breathPhase} warmth={done ? 0.2 : 0} />;
 
-  if (!reason) {
-    return (
-      <Screen center backdrop={backdrop}>
-        <View style={styles.block}>
-          <Title center>What woke you up?</Title>
-          <View style={{ marginTop: spacing.xl, gap: 10, width: '100%' }}>
-            {OPTIONS.map((o) => (
-              <CalmButton key={o.id} label={o.label} onPress={() => chooseReason(o.id)} style={{ width: '100%' }} />
-            ))}
-          </View>
-        </View>
-      </Screen>
-    );
-  }
-
+  // "Start my favourite soundscape" jumps straight here without ever picking
+  // a reason, so this must be checked before the "what woke you" screen.
   if (done) {
     return (
       <Screen center backdrop={backdrop}>
@@ -124,6 +149,21 @@ export default function Sleep() {
             onPress={() => router.push('/journal/new')}
           />
           <CalmButton label="I'm ready to rest" variant="primary" size="large" style={{ marginTop: spacing.sm, width: '100%' }} onPress={finish} />
+        </View>
+      </Screen>
+    );
+  }
+
+  if (!reason) {
+    return (
+      <Screen center backdrop={backdrop}>
+        <View style={styles.block}>
+          <Title center>What woke you up?</Title>
+          <View style={{ marginTop: spacing.xl, gap: 10, width: '100%' }}>
+            {OPTIONS.map((o) => (
+              <CalmButton key={o.id} label={o.label} onPress={() => chooseReason(o.id)} style={{ width: '100%' }} />
+            ))}
+          </View>
         </View>
       </Screen>
     );

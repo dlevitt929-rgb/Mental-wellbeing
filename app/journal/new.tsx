@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, TextInput, Pressable, ScrollView, Alert, AppState } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import { Screen } from '@/components/Screen';
 import { Environment } from '@/components/environments/Environment';
 import { JournalLockScreen } from '@/components/JournalLockScreen';
@@ -15,6 +14,7 @@ import { hexToRgba } from '@/utils/color';
 import { useJournalStore } from '@/store/useJournalStore';
 import { useJournalGate } from '@/hooks/useJournalGate';
 import { useSettingsStore } from '@/store/useSettingsStore';
+import { useHaptics } from '@/hooks/useHaptics';
 import { MOODS } from '@/data/moods';
 import { WEATHER_BY_MOOD } from '@/data/weather';
 import { JOURNAL_PROMPTS } from '@/data/journalPrompts';
@@ -34,7 +34,7 @@ function JournalWriteScreen() {
   const updateEntry = useJournalStore((s) => s.update);
   const removeEntry = useJournalStore((s) => s.remove);
   const calmEnvironment = useSettingsStore((s) => s.calmEnvironment);
-  const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
+  const haptics = useHaptics();
 
   const existing = params.id ? getById(params.id) : undefined;
   const [entryId, setEntryId] = useState<string | null>(existing?.id ?? null);
@@ -171,7 +171,7 @@ function JournalWriteScreen() {
               <Pressable
                 key={m.id}
                 onPress={() => {
-                  if (hapticsEnabled) Haptics.selectionAsync().catch(() => {});
+                  haptics.selection();
                   setMood(active ? undefined : m.id);
                 }}
                 style={[

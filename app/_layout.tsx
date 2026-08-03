@@ -10,15 +10,20 @@ import { AudioProvider } from '@/engines/audio/AudioProvider';
 import { JournalSecurityGuard } from '@/engines/JournalSecurityGuard';
 import { TransitionOverlayProvider } from '@/engines/TransitionOverlay';
 import { useAppFonts } from '@/theme/useAppFonts';
+import { markStartup } from '@/engines/perfInstrumentation';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 SystemUI.setBackgroundColorAsync('#0B0F14').catch(() => {});
+markStartup('module-loaded');
 
 export default function RootLayout() {
   const [fontsLoaded] = useAppFonts();
 
   useEffect(() => {
-    if (fontsLoaded) SplashScreen.hideAsync().catch(() => {});
+    if (fontsLoaded) {
+      markStartup('fonts-loaded');
+      SplashScreen.hideAsync().catch(() => {});
+    }
   }, [fontsLoaded]);
 
   if (!fontsLoaded) return <BootSplash />;

@@ -2,24 +2,24 @@ import React from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import Svg, { Path, Line } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
-import * as Haptics from 'expo-haptics';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing, radii } from '@/theme/tokens';
+import { useHaptics } from '@/hooks/useHaptics';
 
 /** Small, unobtrusive mute toggle — only ever shown while a session's ambient sound is active. */
 export function SessionSoundToggle() {
   const { scheme } = useTheme();
   const soundEnabled = useSettingsStore((s) => s.soundEnabled);
   const setSoundEnabled = useSettingsStore((s) => s.setSoundEnabled);
-  const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
+  const { selection } = useHaptics();
   const iconColor = scheme === 'light' ? '#2E2A22' : '#F3F1EC';
 
   return (
     <Pressable
       style={styles.wrap}
       onPress={() => {
-        if (hapticsEnabled) Haptics.selectionAsync().catch(() => {});
+        selection();
         setSoundEnabled(!soundEnabled);
       }}
       hitSlop={12}
