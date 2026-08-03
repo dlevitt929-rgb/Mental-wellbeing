@@ -1,11 +1,11 @@
 import React, { useEffect } from 'react';
-import { View } from 'react-native';
 import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
+import { BootSplash } from '@/components/BootSplash';
 import { AudioProvider } from '@/engines/audio/AudioProvider';
 import { JournalSecurityGuard } from '@/engines/JournalSecurityGuard';
 import { TransitionOverlayProvider } from '@/engines/TransitionOverlay';
@@ -21,7 +21,7 @@ export default function RootLayout() {
     if (fontsLoaded) SplashScreen.hideAsync().catch(() => {});
   }, [fontsLoaded]);
 
-  if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: '#0B0F14' }} />;
+  if (!fontsLoaded) return <BootSplash />;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
