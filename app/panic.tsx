@@ -29,9 +29,10 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 import { useCalmPlanStore } from '@/store/useCalmPlanStore';
 import { useLettersStore } from '@/store/useLettersStore';
 import { useMemoriesStore } from '@/store/useMemoriesStore';
+import { usePanicResumeStore, getFreshPanicSnapshot } from '@/store/usePanicResumeStore';
 import { Feeling, BreathingPhase } from '@/types';
 
-type Stage = 'opening' | 'letter-offer' | 'letter-read' | 'questions' | PlanStep['kind'] | 'landing';
+type Stage = 'resume-offer' | 'opening' | 'letter-offer' | 'letter-read' | 'questions' | PlanStep['kind'] | 'landing';
 
 function sampleSenses(n: number) {
   const shuffled = [...FIVE_SENSES_SEQUENCE].sort(() => Math.random() - 0.5);
@@ -42,14 +43,18 @@ export default function Panic() {
   useModeOnFocus('panic');
   const { palette } = useTheme();
   const params = useLocalSearchParams<{ feeling?: string }>();
-  const feeling = (params.feeling as Feeling) ?? 'panicking';
+  const paramFeeling = (params.feeling as Feeling) ?? 'panicking';
 
   const start = useSessionStore((s) => s.start);
   const logStep = useSessionStore((s) => s.logStep);
   const logTechnique = useSessionStore((s) => s.logTechnique);
   const calmEnvironment = useSettingsStore((s) => s.calmEnvironment);
+  const saveResume = usePanicResumeStore((s) => s.save);
+  const clearResume = usePanicResumeStore((s) => s.clear);
 
+  const [feeling, setFeeling] = useState<Feeling>(paramFeeling);
   const [stage, setStage] = useState<Stage>('opening');
+  const [resumable, setResumable] = useState(() => getFreshPanicSnapshot());
   const [qIndex, setQIndex] = useState(0);
   const [signals, setSignals] = useState<CalmingPathSignals>({});
   const [plan, setPlan] = useState<PlanStep[]>([]);
@@ -91,6 +96,26 @@ export default function Panic() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // The resume snapshot lives in a persisted store, which hydrates from disk
+  // asynchronously — it usually isn't ready on the very first render, so the
+  // initial `getFreshPanicSnapshot()` read above can miss a real snapshot.
+  // Re-check once hydration actually finishes, and only act on it if the
+  // person hasn't already moved past the opening beat on their own.
+  useEffect(() => {
+    const recheck = () => {
+      const snap = getFreshPanicSnapshot();
+      if (snap) {
+        setResumable(snap);
+        setStage((current) => (current === 'opening' ? 'resume-offer' : current));
+      }
+    };
+    if (usePanicResumeStore.persist.hasHydrated()) {
+      recheck();
+      return undefined;
+    }
+    return usePanicResumeStore.persist.onFinishHydration(recheck);
+  }, []);
+
   useEffect(() => {
     if (stage !== 'breathing') setBreathPhase(null);
   }, [stage]);
@@ -110,6 +135,7 @@ export default function Panic() {
       setPlanIndex(0);
       logStep('panic:plan-built');
       setStage(builtPlan[0].kind);
+      saveResume({ feeling, signals: next, planIndex: 0 });
     }
   };
 
@@ -118,10 +144,29 @@ export default function Panic() {
     if (nextIndex >= plan.length) {
       setStage('landing');
       logStep('panic:landing');
+      clearResume();
       return;
     }
     setPlanIndex(nextIndex);
     setStage(plan[nextIndex].kind);
+    saveResume({ feeling, signals, planIndex: nextIndex });
+  };
+
+  const resumeSession = () => {
+    if (!resumable) return;
+    const rebuiltPlan = buildCalmingPlan(resumable.signals);
+    const boundedIndex = Math.min(resumable.planIndex, rebuiltPlan.length - 1);
+    setFeeling(resumable.feeling);
+    setSignals(resumable.signals);
+    setPlan(rebuiltPlan);
+    setPlanIndex(boundedIndex);
+    setStage(rebuiltPlan[boundedIndex].kind);
+    logStep('panic:resumed');
+  };
+
+  const startFresh = () => {
+    clearResume();
+    setStage('opening');
   };
 
   const warmth = useMemo(() => {
@@ -142,6 +187,19 @@ export default function Panic() {
       }
       overlay={stage === 'breathing' ? <SessionSoundToggle /> : undefined}
     >
+      {stage === 'resume-offer' && (
+        <Animated.View entering={FadeIn.duration(500)} style={styles.block}>
+          <Whisper center>You were in the middle of something.</Whisper>
+          <Body color={palette.textMuted} center style={{ marginTop: spacing.md }}>
+            Want to pick up where you left off, or start fresh?
+          </Body>
+          <View style={{ marginTop: spacing.xl, gap: 10, width: '100%' }}>
+            <CalmButton label="Pick up where I left off" variant="primary" size="large" style={{ width: '100%' }} onPress={resumeSession} />
+            <CalmButton label="Start fresh" variant="ghost" onPress={startFresh} />
+          </View>
+        </Animated.View>
+      )}
+
       {stage === 'opening' && (
         <MessageBeat
           beats={[

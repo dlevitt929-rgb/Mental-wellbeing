@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -15,6 +15,7 @@ import { spacing } from '@/theme/tokens';
 import { BREATHING_TECHNIQUES } from '@/engines/breathing';
 import { FIVE_SENSES_SEQUENCE } from '@/data/grounding';
 import { useSessionAmbience } from '@/hooks/useSessionAmbience';
+import { useSessionOnMount } from '@/hooks/useSessionOnMount';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useSessionStore } from '@/store/useSessionStore';
 
@@ -47,21 +48,15 @@ const WARMTH_FOR_STAGE: Record<Stage, number> = {
 export default function DontThinkJustFollow() {
   const { palette } = useTheme();
   const calmEnvironment = useSettingsStore((s) => s.calmEnvironment);
-  const start = useSessionStore((s) => s.start);
   const logTechnique = useSessionStore((s) => s.logTechnique);
   const endSession = useSessionStore((s) => s.end);
   const [stage, setStage] = useState<Stage>('breathing');
-  const started = useRef(false);
   const groundingSteps = useMemo(
     () => [...FIVE_SENSES_SEQUENCE].sort(() => Math.random() - 0.5).slice(0, 4).map((p) => p.text),
     [],
   );
 
-  if (!started.current) {
-    start('overwhelmed');
-    started.current = true;
-  }
-
+  useSessionOnMount('overwhelmed');
   useSessionAmbience(stage !== 'done', calmEnvironment, 0.22);
 
   const advance = () => {

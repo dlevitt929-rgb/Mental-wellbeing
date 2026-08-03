@@ -7,6 +7,7 @@ import * as SystemUI from 'expo-system-ui';
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 import { AudioProvider } from '@/engines/audio/AudioProvider';
+import { JournalSecurityGuard } from '@/engines/JournalSecurityGuard';
 import { TransitionOverlayProvider } from '@/engines/TransitionOverlay';
 import { useAppFonts } from '@/theme/useAppFonts';
 
@@ -26,6 +27,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
         <AudioProvider />
+        <JournalSecurityGuard />
         <TransitionOverlayProvider>
           <AppChrome />
         </TransitionOverlayProvider>

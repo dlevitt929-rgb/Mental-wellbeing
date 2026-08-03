@@ -11,6 +11,7 @@ import { Body, Caption } from '@/theme/Type';
 import { useTheme, useModeOnFocus } from '@/theme/ThemeProvider';
 import { spacing, radii } from '@/theme/tokens';
 import { useAudioExperience } from '@/hooks/useAudioExperience';
+import { useSessionOnMount } from '@/hooks/useSessionOnMount';
 import { useSessionStore } from '@/store/useSessionStore';
 import { companionRespond, OPENING_LINE } from '@/engines/aiCompanion';
 import { fonts } from '@/theme/useAppFonts';
@@ -75,23 +76,20 @@ export default function StayWithMe() {
   const { palette } = useTheme();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const [mode, setMode] = useState<PresenceMode>(tab === 'talk' ? 'talk-through' : 'quiet');
-  const start = useSessionStore((s) => s.start);
   const logTechnique = useSessionStore((s) => s.logTechnique);
   const endSession = useSessionStore((s) => s.end);
   const [messages, setMessages] = useState<ChatMessage[]>([{ from: 'ebb', text: OPENING_LINE }]);
   const [input, setInput] = useState('');
   const scrollRef = useRef<ScrollView>(null);
-  const started = useRef(false);
+  const replyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useAudioExperience(true, 'fireplace', { volume: 0.2, label: 'stay-with-me' });
+  useSessionOnMount('alone', 'stay-with-me');
 
   useEffect(() => {
-    if (!started.current) {
-      start('alone');
-      logTechnique('stay-with-me');
-      started.current = true;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      if (replyTimer.current) clearTimeout(replyTimer.current);
+    };
   }, []);
 
   const send = () => {
@@ -104,7 +102,8 @@ export default function StayWithMe() {
       router.push({ pathname: '/crisis', params: { level: reply.safety } });
       return;
     }
-    setTimeout(() => {
+    if (replyTimer.current) clearTimeout(replyTimer.current);
+    replyTimer.current = setTimeout(() => {
       setMessages((m) => [...m, { from: 'ebb', text: reply.text }]);
       logTechnique('talking');
       requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));

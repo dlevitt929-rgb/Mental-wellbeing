@@ -10,6 +10,7 @@ import { Whisper, Body, Caption } from '@/theme/Type';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/tokens';
 import { useSessionAmbience } from '@/hooks/useSessionAmbience';
+import { useSessionOnMount } from '@/hooks/useSessionOnMount';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useSessionStore } from '@/store/useSessionStore';
 
@@ -31,24 +32,18 @@ export default function ComeBackToTheRoom() {
   const { palette } = useTheme();
   const calmEnvironment = useSettingsStore((s) => s.calmEnvironment);
   const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
-  const start = useSessionStore((s) => s.start);
   const logTechnique = useSessionStore((s) => s.logTechnique);
   const endSession = useSessionStore((s) => s.end);
 
   const [stepIndex, setStepIndex] = useState(0);
   const [stage, setStage] = useState<Stage>('reveal');
-  const started = useRef(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const pulseInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const dim = useSharedValue(0);
 
+  useSessionOnMount('overwhelmed');
   useSessionAmbience(stage !== 'done', calmEnvironment, 0.18);
-
-  if (!started.current) {
-    start('overwhelmed');
-    started.current = true;
-  }
 
   const clearAll = () => {
     timers.current.forEach(clearTimeout);

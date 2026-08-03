@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '@/components/Screen';
@@ -8,6 +8,7 @@ import { MessageBeat } from '@/components/MessageBeat';
 import { Caption } from '@/theme/Type';
 import { useTheme } from '@/theme/ThemeProvider';
 import { useSessionAmbience } from '@/hooks/useSessionAmbience';
+import { useSessionOnMount } from '@/hooks/useSessionOnMount';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useSessionStore } from '@/store/useSessionStore';
 
@@ -24,18 +25,10 @@ const LINES: { text: string; holdMs: number }[] = [
 export default function NothingToDo() {
   const { palette } = useTheme();
   const calmEnvironment = useSettingsStore((s) => s.calmEnvironment);
-  const start = useSessionStore((s) => s.start);
-  const logTechnique = useSessionStore((s) => s.logTechnique);
   const endSession = useSessionStore((s) => s.end);
   const [warmth, setWarmth] = useState(0);
-  const started = useRef(false);
 
-  if (!started.current) {
-    start('need-calm');
-    logTechnique('stillness');
-    started.current = true;
-  }
-
+  useSessionOnMount('need-calm', 'stillness');
   useSessionAmbience(true, calmEnvironment, 0.2);
 
   useEffect(() => {

@@ -14,6 +14,7 @@ import { Title, Body, Whisper, Caption } from '@/theme/Type';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing, radii } from '@/theme/tokens';
 import { useSessionStore } from '@/store/useSessionStore';
+import { useSessionOnMount } from '@/hooks/useSessionOnMount';
 import { useJournalStore } from '@/store/useJournalStore';
 import { fonts } from '@/theme/useAppFonts';
 import { generateId } from '@/utils/id';
@@ -42,19 +43,19 @@ export default function RacingThoughts() {
   const [thoughts, setThoughts] = useState<Thought[]>([]);
   const [input, setInput] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
-  const start = useSessionStore((s) => s.start);
   const logTechnique = useSessionStore((s) => s.logTechnique);
   const endSession = useSessionStore((s) => s.end);
   const createJournalEntry = useJournalStore((s) => s.create);
   const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
-  const started = useRef(false);
   const [savedToJournal, setSavedToJournal] = useState(false);
+  const categorizeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useSessionOnMount('racing-thoughts');
 
   useEffect(() => {
-    if (!started.current) {
-      start('racing-thoughts');
-      started.current = true;
-    }
+    return () => {
+      if (categorizeTimer.current) clearTimeout(categorizeTimer.current);
+    };
   }, []);
 
   const activeCount = thoughts.filter((t) => !t.category).length;
@@ -74,7 +75,8 @@ export default function RacingThoughts() {
     logTechnique('cognitive-defusion');
     if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     setOpenId(null);
-    setTimeout(() => {
+    if (categorizeTimer.current) clearTimeout(categorizeTimer.current);
+    categorizeTimer.current = setTimeout(() => {
       setThoughts((t) => t.map((th) => (th.id === id ? { ...th, category } : th)));
     }, 80);
   };

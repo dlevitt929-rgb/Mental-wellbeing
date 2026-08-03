@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, TextInput, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated';
@@ -121,6 +121,17 @@ function VoiceRecorder({ onDone, onCancel }: { onDone: () => void; onCancel: () 
   const state = useAudioRecorderState(recorder, 200);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [readyToSave, setReadyToSave] = useState(false);
+  const isRecordingRef = useRef(false);
+  isRecordingRef.current = state.isRecording;
+
+  // Leaving this screen mid-recording (back gesture, backgrounding the app,
+  // an incoming call) must not leave the microphone running silently.
+  useEffect(() => {
+    return () => {
+      if (isRecordingRef.current) recorder.stop().catch(() => {});
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const start = async () => {
     const { granted } = await requestRecordingPermissionsAsync();

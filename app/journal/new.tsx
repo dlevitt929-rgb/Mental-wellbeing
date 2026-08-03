@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, TextInput, Pressable, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, TextInput, Pressable, ScrollView, Alert, AppState } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -44,15 +44,24 @@ function JournalWriteScreen() {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isNew = !existing;
 
+  // Always callable with the latest text/mood/entryId, even from a cleanup
+  // closure captured on mount — this is what lets us flush a pending save
+  // instead of just cancelling it when the screen unmounts mid-debounce.
+  const performSaveRef = useRef<() => void>(() => {});
+  performSaveRef.current = () => {
+    if (entryId) {
+      updateEntry(entryId, { text, mood });
+    } else if (text.trim().length > 0) {
+      const id = createEntry(text, mood);
+      setEntryId(id);
+    }
+  };
+
   useEffect(() => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      if (entryId) {
-        updateEntry(entryId, { text, mood });
-      } else if (text.trim().length > 0) {
-        const id = createEntry(text, mood);
-        setEntryId(id);
-      }
+      saveTimer.current = null;
+      performSaveRef.current();
     }, 500);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -60,9 +69,41 @@ function JournalWriteScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text, mood]);
 
+  // Flush any not-yet-saved keystrokes if the screen unmounts while a save
+  // is still pending — e.g. the person navigates away in the half-second
+  // before the debounce would have fired.
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+        performSaveRef.current();
+      }
+    };
+  }, []);
+
+  // Backgrounding the app (Home button, phone call, notification) doesn't
+  // unmount this screen, so it needs its own flush — otherwise iOS can
+  // suspend or kill the process mid-debounce and the last few words vanish.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active' && saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+        performSaveRef.current();
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
   const wordCount = text.trim().length ? text.trim().split(/\s+/).length : 0;
 
   const finish = () => {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+      performSaveRef.current();
+    }
     router.back();
   };
 
