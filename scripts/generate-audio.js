@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 const SAMPLE_RATE = 24000;
-const DURATION_S = 16;
+const DURATION_S = 48; // was 16s — long enough that the repeat period stops being consciously noticeable
 const N = SAMPLE_RATE * DURATION_S;
 const OUT_DIR = path.join(__dirname, '..', 'assets', 'audio');
 
@@ -35,14 +35,30 @@ function writeWav(filename, floatSamples) {
   console.log('wrote', outPath, `${(buffer.length / 1024 / 1024).toFixed(2)}MB`);
 }
 
-/** Seam-safe: fades the first/last `edge` samples to 0 so loop() has no click. */
-function loopify(samples, edgeSeconds = 0.35) {
-  const edge = Math.floor(edgeSeconds * SAMPLE_RATE);
+/**
+ * Seamless loop via an equal-power crossfade of the tail into the head, IN
+ * PLACE — not a fade to silence at each edge.
+ *
+ * The old version faded the first/last `edge` samples down to zero, which
+ * avoided a click at the seam but created a periodic dip in loudness right
+ * at the loop point — audible as a soft "breathing"/pumping pulse once per
+ * loop. For stationary noise (rain, brown noise, wind…) any two equal-length
+ * chunks are statistically interchangeable, so instead we blend the true
+ * tail and true head with complementary sin/cos gains: for two uncorrelated
+ * signals of equal variance, sin²+cos²=1 keeps total power constant across
+ * the whole crossfade — the seam has no dip and no click, and the loop
+ * point becomes inaudible rather than just less audible.
+ */
+function loopify(samples, crossfadeSeconds = 1.2) {
+  const cf = Math.min(Math.floor(crossfadeSeconds * SAMPLE_RATE), Math.floor(samples.length / 4));
   const out = samples.slice();
-  for (let i = 0; i < edge; i++) {
-    const g = i / edge;
-    out[i] *= g;
-    out[out.length - 1 - i] *= g;
+  const head = samples.slice(0, cf);
+  const tailStart = samples.length - cf;
+  for (let i = 0; i < cf; i++) {
+    const theta = (i / cf) * (Math.PI / 2);
+    const gOut = Math.cos(theta); // the original tail fading out
+    const gIn = Math.sin(theta); // the head fading in, in its place
+    out[tailStart + i] = samples[tailStart + i] * gOut + head[i] * gIn;
   }
   return out;
 }
@@ -116,8 +132,46 @@ function mix(...tracks) {
   return out;
 }
 
+function scale(samples, g) {
+  const out = new Float32Array(samples.length);
+  for (let i = 0; i < samples.length; i++) out[i] = samples[i] * g;
+  return out;
+}
+
+/** A handful of very soft, very slow low-passed swells placed at irregular
+ *  (non-repeating-sounding) times — the "felt, not heard" distant weight
+ *  under rain, never loud or sudden enough to startle. */
+function distantSwells(n, count, ampRange) {
+  const out = new Float32Array(n);
+  const minGapS = DURATION_S / (count + 1);
+  let cursor = minGapS * (0.4 + Math.random() * 0.3) * SAMPLE_RATE;
+  for (let k = 0; k < count && cursor < n; k++) {
+    const riseMs = 900 + Math.random() * 1200;
+    const holdMs = 400 + Math.random() * 800;
+    const fallMs = 1400 + Math.random() * 1800;
+    const totalSamples = Math.floor(((riseMs + holdMs + fallMs) / 1000) * SAMPLE_RATE);
+    const amp = ampRange[0] + Math.random() * (ampRange[1] - ampRange[0]);
+    const riseN = Math.floor((riseMs / 1000) * SAMPLE_RATE);
+    const holdN = Math.floor((holdMs / 1000) * SAMPLE_RATE);
+    let y = 0;
+    for (let j = 0; j < totalSamples && cursor + j < n; j++) {
+      let env;
+      if (j < riseN) env = j / riseN;
+      else if (j < riseN + holdN) env = 1;
+      else env = Math.max(0, 1 - (j - riseN - holdN) / (totalSamples - riseN - holdN));
+      const white = Math.random() * 2 - 1;
+      y = y + 0.01 * (white - y); // heavy lowpass — felt warmth, not a hiss
+      out[cursor + j] += y * amp * env;
+    }
+    cursor += totalSamples + minGapS * (0.7 + Math.random() * 0.9) * SAMPLE_RATE;
+  }
+  return out;
+}
+
 function generateRain() {
-  // Bright filtered noise bed + dense tiny droplet impulses.
+  // Bright filtered noise bed + dense tiny droplet impulses + an occasional,
+  // very soft, very low distant swell so a long session doesn't feel like
+  // the exact same texture on a tight repeat.
   const bed = varyingLowpass(whiteNoise(N), () => 0.35);
   const drops = new Float32Array(N);
   for (let i = 0; i < N; i++) {
@@ -129,21 +183,32 @@ function generateRain() {
       }
     }
   }
-  return normalize(mix(scale(bed, 0.5), scale(drops, 0.6)), 0.8);
+  const distant = distantSwells(N, 3, [0.05, 0.09]);
+  return normalize(mix(scale(bed, 0.5), scale(drops, 0.6), distant), 0.8);
 }
 
-function scale(samples, g) {
-  const out = new Float32Array(samples.length);
-  for (let i = 0; i < samples.length; i++) out[i] = samples[i] * g;
-  return out;
-}
-
+// Both generators below deliberately pick LFO frequencies that are whole
+// multiples of 1/DURATION_S. A swell envelope needs to be periodic across
+// exactly one loop for the seam to be silent — otherwise the loop crossfade
+// is blending two samples that are honestly at different points in the
+// swell (e.g. a wave cresting into a wave trough), which sounds like a
+// jump in loudness once per loop no matter how carefully the noise
+// underneath it is blended. Locking the frequency to the loop length makes
+// the envelope itself perfectly seamless, so the noise crossfade only has
+// to do the (much easier) job of smoothing texture, not amplitude.
 function generateOcean() {
-  const bed = brownNoise(N);
+  // Crossfade the raw noise bed *before* the swell envelope is applied. The
+  // envelope itself is already exactly periodic (locked to the loop length),
+  // so it needs no blending at all — blending it would average two different
+  // points on the swell curve and reintroduce the very loudness jump this is
+  // meant to remove. Only the noise texture underneath needs the crossfade.
+  const bed = loopify(brownNoise(N));
   const out = new Float32Array(N);
+  const f1 = 4 / DURATION_S;
+  const f2 = 1 / DURATION_S;
   for (let i = 0; i < N; i++) {
     const t = i / SAMPLE_RATE;
-    const swell = 0.55 + 0.45 * Math.sin(2 * Math.PI * t * 0.09) * Math.sin(2 * Math.PI * t * 0.023 + 1.4);
+    const swell = 0.55 + 0.45 * Math.sin(2 * Math.PI * t * f1) * Math.sin(2 * Math.PI * t * f2 + 1.4);
     out[i] = bed[i] * Math.max(0.15, swell);
   }
   return normalize(out, 0.85);
@@ -151,9 +216,11 @@ function generateOcean() {
 
 function generateWind() {
   const base = whiteNoise(N);
+  const f1 = 2 / DURATION_S;
+  const f2 = 6 / DURATION_S;
   const out = varyingLowpass(base, (i) => {
     const t = i / SAMPLE_RATE;
-    const lfo = 0.15 + 0.1 * Math.sin(2 * Math.PI * t * 0.045) + 0.05 * Math.sin(2 * Math.PI * t * 0.13 + 2);
+    const lfo = 0.15 + 0.1 * Math.sin(2 * Math.PI * t * f1) + 0.05 * Math.sin(2 * Math.PI * t * f2 + 2);
     return Math.max(0.02, lfo);
   });
   return normalize(out, 0.8);
@@ -185,7 +252,7 @@ function generateRoomTone() {
 if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
 
 writeWav('rain.wav', loopify(generateRain()));
-writeWav('ocean.wav', loopify(generateOcean()));
+writeWav('ocean.wav', generateOcean()); // already loop-crossfaded internally, before the swell envelope
 writeWav('wind.wav', loopify(generateWind()));
 writeWav('fireplace.wav', loopify(generateFireplace()));
 writeWav('brown-noise.wav', loopify(generateBrown()));

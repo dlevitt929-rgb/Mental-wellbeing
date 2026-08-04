@@ -5,7 +5,7 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { Screen } from '@/components/Screen';
 import { Environment } from '@/components/environments/Environment';
 import { SessionSoundToggle } from '@/components/SessionSoundToggle';
-import { MessageBeat } from '@/components/MessageBeat';
+import { MessageBeat, Beat } from '@/components/MessageBeat';
 import { BreathingOrb } from '@/components/BreathingOrb';
 import { GroundingSequence } from '@/components/GroundingSequence';
 import { CalmButton } from '@/components/CalmButton';
@@ -65,6 +65,7 @@ export default function Panic() {
   const [plan, setPlan] = useState<PlanStep[]>([]);
   const [planIndex, setPlanIndex] = useState(0);
   const [breathPhase, setBreathPhase] = useState<BreathingPhase['key'] | null>(null);
+  const [landingReady, setLandingReady] = useState(false);
 
   const groundingSteps = useMemo(
     () => [...PHYSICAL_GROUNDING_STEPS.slice(0, 2), ...sampleSenses(3)],
@@ -171,6 +172,7 @@ export default function Panic() {
 
   const startFresh = () => {
     clearResume();
+    setLandingReady(false);
     setStage('opening');
   };
 
@@ -219,9 +221,9 @@ export default function Panic() {
           beats={[
             { text: openingLineForFeeling(feeling), holdMs: 2800 },
             { text: 'Stay with me for the next few minutes.', holdMs: 2600 },
-            { text: 'Put both feet on the floor.', holdMs: 3200 },
+            { text: 'Put both feet on the floor.', requiresAction: true },
             { text: 'Good.', holdMs: 1600 },
-            { text: 'Notice where your body is touching the chair or bed.', holdMs: 3400 },
+            { text: 'Notice where your body is touching the chair or bed.', requiresAction: true },
           ]}
           onDone={() => {
             if (somethingLeft.any) {
@@ -325,6 +327,11 @@ export default function Panic() {
               }
             }}
             onComplete={() => {
+              // Every technique ends on an exhale or a hold-empty, which
+              // ducks the ambient bed on the way in here — without this,
+              // the next stage inherits a quietly-ducked track forever,
+              // since nothing else was going to un-duck it.
+              AudioManager.unduckCurrent(300);
               logTechnique('breathing');
               logStep('panic:breathing-done');
               advancePlan();
@@ -361,13 +368,13 @@ export default function Panic() {
       {stage === 'reassurance' && (
         <MessageBeat
           beats={[
-            { text: reassuranceLine(signals), holdMs: 4200 },
+            { text: reassuranceLine(signals), emotionalWeight: 'high' } as Beat,
             ...(calmPlanLine
-              ? [
+              ? ([
                   { text: 'You wrote this when you were feeling okay:', holdMs: 2800 },
-                  { text: `“${calmPlanLine}”`, holdMs: 4200 },
-                ]
-              : [{ text: 'You’ve gotten through moments like this before.', holdMs: 3200 }]),
+                  { text: `“${calmPlanLine}”`, emotionalWeight: 'high' },
+                ] as Beat[])
+              : ([{ text: 'You’ve gotten through moments like this before.', emotionalWeight: 'high' }] as Beat[])),
           ]}
           onDone={() => {
             logTechnique('emotional-regulation');
@@ -380,18 +387,21 @@ export default function Panic() {
         <View style={styles.block}>
           <MessageBeat
             beats={[
-              { text: 'You made it through the last few minutes.', holdMs: 3600 },
-              { text: 'Stay here as long as you need.', holdMs: 3600 },
+              { text: 'You made it through the last few minutes.', emotionalWeight: 'medium' },
+              { text: 'Stay here as long as you need.', emotionalWeight: 'medium' },
             ]}
+            onDone={() => setLandingReady(true)}
           />
-          <Animated.View entering={FadeIn.delay(4200).duration(800)}>
-            <CalmButton
-              label="I'm ready to continue"
-              variant="primary"
-              style={{ marginTop: spacing.xxl }}
-              onPress={() => router.replace({ pathname: '/reflection', params: { feeling } })}
-            />
-          </Animated.View>
+          {landingReady && (
+            <Animated.View entering={FadeIn.duration(800)}>
+              <CalmButton
+                label="I'm ready to continue"
+                variant="primary"
+                style={{ marginTop: spacing.xxl }}
+                onPress={() => router.replace({ pathname: '/reflection', params: { feeling } })}
+              />
+            </Animated.View>
+          )}
         </View>
       )}
 

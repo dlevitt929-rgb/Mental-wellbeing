@@ -18,11 +18,18 @@ import { useMemoriesStore } from '@/store/useMemoriesStore';
 import { EnvironmentPicker } from '@/components/EnvironmentPicker';
 import { Appearance, VisualEffects } from '@/store/useSettingsStore';
 import { useHaptics } from '@/hooks/useHaptics';
+import { GuidancePace } from '@/engines/textTiming';
 
 const VISUAL_EFFECTS_OPTIONS: { id: VisualEffects; label: string }[] = [
   { id: 'auto', label: 'Automatic' },
   { id: 'full', label: 'Full' },
   { id: 'reduced', label: 'Reduced' },
+];
+
+const GUIDANCE_PACE_OPTIONS: { id: GuidancePace; label: string }[] = [
+  { id: 'slower', label: 'Slower' },
+  { id: 'standard', label: 'Standard' },
+  { id: 'faster', label: 'Faster' },
 ];
 
 const APPEARANCE_OPTIONS: { id: Appearance; label: string }[] = [
@@ -49,6 +56,8 @@ export default function Settings() {
   const setSleepEnvironment = useSettingsStore((s) => s.setSleepEnvironment);
   const visualEffects = useSettingsStore((s) => s.visualEffects);
   const setVisualEffects = useSettingsStore((s) => s.setVisualEffects);
+  const guidancePace = useSettingsStore((s) => s.guidancePace);
+  const setGuidancePace = useSettingsStore((s) => s.setGuidancePace);
 
   const { warning } = useHaptics();
   const sessions = useSessionStore((s) => s.sessions);
@@ -122,6 +131,29 @@ export default function Settings() {
               <Pressable
                 key={opt.id}
                 onPress={() => setVisualEffects(opt.id)}
+                style={[
+                  styles.appearanceChip,
+                  { borderColor: active ? palette.accent : palette.border, backgroundColor: active ? palette.surfaceRaised : 'transparent' },
+                ]}
+              >
+                <Body color={active ? palette.text : palette.textMuted}>{opt.label}</Body>
+              </Pressable>
+            );
+          })}
+        </View>
+      </Section>
+
+      <Section title="Guidance pace">
+        <Body color={palette.textMuted} style={{ marginBottom: spacing.sm }}>
+          How long guided instructions stay on screen before moving on.
+        </Body>
+        <View style={styles.appearanceRow}>
+          {GUIDANCE_PACE_OPTIONS.map((opt) => {
+            const active = guidancePace === opt.id;
+            return (
+              <Pressable
+                key={opt.id}
+                onPress={() => setGuidancePace(opt.id)}
                 style={[
                   styles.appearanceChip,
                   { borderColor: active ? palette.accent : palette.border, backgroundColor: active ? palette.surfaceRaised : 'transparent' },

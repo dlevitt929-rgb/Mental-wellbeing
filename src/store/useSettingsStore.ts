@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { localStorage } from './storage';
 import { EnvironmentId } from '@/components/environments/types';
 import { Feeling } from '@/types';
+import { GuidancePace } from '@/engines/textTiming';
 
 export type Appearance = 'light' | 'dark' | 'system';
 export type PresencePreference = 'guided' | 'quiet' | 'both';
@@ -28,6 +29,10 @@ interface SettingsState {
   /** From onboarding — biases the default Stay With Me presence mode. */
   presencePreference: PresencePreference;
   visualEffects: VisualEffects;
+  /** How long guided text stays on screen before advancing. Never changes
+   *  physically-timed things like a breathing phase — only free-standing
+   *  instructional/reassurance text. */
+  guidancePace: GuidancePace;
   setHasOnboarded: (v: boolean) => void;
   setName: (name: string) => void;
   setAppearance: (v: Appearance) => void;
@@ -42,6 +47,7 @@ interface SettingsState {
   setCommonSituations: (v: Feeling[]) => void;
   setPresencePreference: (v: PresencePreference) => void;
   setVisualEffects: (v: VisualEffects) => void;
+  setGuidancePace: (v: GuidancePace) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -61,6 +67,7 @@ export const useSettingsStore = create<SettingsState>()(
       commonSituations: [],
       presencePreference: 'both',
       visualEffects: 'auto',
+      guidancePace: 'standard',
       setHasOnboarded: (v) => set({ hasOnboarded: v }),
       setName: (name) => set({ name }),
       setAppearance: (v) => set({ appearance: v }),
@@ -75,6 +82,7 @@ export const useSettingsStore = create<SettingsState>()(
       setCommonSituations: (v) => set({ commonSituations: v }),
       setPresencePreference: (v) => set({ presencePreference: v }),
       setVisualEffects: (v) => set({ visualEffects: v }),
+      setGuidancePace: (v) => set({ guidancePace: v }),
     }),
     { name: 'ebb.settings', storage: localStorage },
   ),

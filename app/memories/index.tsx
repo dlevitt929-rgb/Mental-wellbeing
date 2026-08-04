@@ -31,6 +31,43 @@ export default function Memories() {
   // pointed at record mode instead of making someone tap through the list first.
   const [mode, setMode] = useState<Mode>(params.mode === 'record' ? 'record' : 'list');
   const [text, setText] = useState('');
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const activePlayback = useRef<{ player: ReturnType<typeof createAudioPlayer>; sub: { remove: () => void } } | null>(null);
+
+  // Every previous voice-memo player used to leak (created, played, never
+  // released) and tapping a second one — or the same one twice — layered a
+  // new player on top instead of replacing it, so two memories could play
+  // at once. Now there's ever only one, tracked and torn down explicitly.
+  const stopPlayback = () => {
+    if (activePlayback.current) {
+      activePlayback.current.sub.remove();
+      activePlayback.current.player.pause();
+      activePlayback.current.player.release();
+      activePlayback.current = null;
+    }
+    AudioManager.unduckCurrent(300);
+    setPlayingId(null);
+  };
+
+  const togglePlayback = (id: string, uri: string) => {
+    if (playingId === id) {
+      stopPlayback();
+      return;
+    }
+    stopPlayback();
+    AudioManager.duckCurrent(0.6, 200);
+    const player = createAudioPlayer(uri);
+    const sub = player.addListener('playbackStatusUpdate', (status) => {
+      // Un-duck and release exactly when the clip actually ends, instead of
+      // guessing a fixed delay that cuts off longer memories mid-playback.
+      if (status.didJustFinish) stopPlayback();
+    });
+    activePlayback.current = { player, sub };
+    setPlayingId(id);
+    player.play();
+  };
+
+  useEffect(() => stopPlayback, []);
 
   const saveText = () => {
     const trimmed = text.trim();
@@ -77,19 +114,14 @@ export default function Memories() {
                   </Body>
                 ) : (
                   <Pressable
-                    onPress={() => {
-                      AudioManager.duckCurrent(0.6, 200);
-                      const player = createAudioPlayer(m.audioUri!);
-                      player.play();
-                      setTimeout(() => AudioManager.unduckCurrent(400), 300);
-                    }}
+                    onPress={() => togglePlayback(m.id, m.audioUri!)}
                     style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}
                   >
-                    <Caption color={palette.accent}>▶</Caption>
-                    <Body color={palette.textMuted}>A voice memory</Body>
+                    <Caption color={palette.accent}>{playingId === m.id ? '■' : '▶'}</Caption>
+                    <Body color={palette.textMuted}>{playingId === m.id ? 'Playing…' : 'A voice memory'}</Body>
                   </Pressable>
                 )}
-                <Pressable onPress={() => remove(m.id)}>
+                <Pressable onPress={() => { if (playingId === m.id) stopPlayback(); remove(m.id); }}>
                   <Caption color={palette.danger}>Remove</Caption>
                 </Pressable>
               </Animated.View>

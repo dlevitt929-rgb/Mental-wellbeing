@@ -4,10 +4,19 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { Whisper } from '@/theme/Type';
 import { useHaptics } from '@/hooks/useHaptics';
 import { AudioManager } from '@/engines/audio/AudioManager';
+import { calculateReadingTime } from '@/engines/textTiming';
+import { useAccessibilityInfo } from '@/hooks/useAccessibilityInfo';
+import { useSettingsStore } from '@/store/useSettingsStore';
 
-interface Beat {
+export interface Beat {
   text: string;
+  /** A floor, not a fixed value — the content-aware minimum reading time
+   *  still applies on top of this if the text needs longer. */
   holdMs?: number;
+  /** A line meant to be felt, not just read — gets real settle time. */
+  emotionalWeight?: 'low' | 'medium' | 'high';
+  /** The person needs to actually do the thing this describes before moving on. */
+  requiresAction?: boolean;
 }
 
 interface MessageBeatProps {
@@ -21,11 +30,15 @@ interface MessageBeatProps {
 }
 
 /** Reveals one reassuring line at a time, with a real pause between each — like someone speaking slowly beside you.
- *  An empty-text beat is a deliberate silence — nothing renders, the hold still counts down. */
+ *  An empty-text beat is a deliberate silence — nothing renders, the hold still counts down.
+ *  Every beat with text stays up for at least as long as calculateReadingTime says it needs,
+ *  regardless of what holdMs a screen set — so a message can't disappear before it's been read. */
 export function MessageBeat({ beats, onDone, loop, gapMs = 3200, paused, duckAmbience = true }: MessageBeatProps) {
   const [index, setIndex] = useState(0);
   const { breathingPulse } = useHaptics();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { fontScale, screenReaderEnabled } = useAccessibilityInfo();
+  const guidancePace = useSettingsStore((s) => s.guidancePace);
 
   const normalized: Beat[] = beats.map((b) => (typeof b === 'string' ? { text: b } : b));
 
@@ -38,8 +51,18 @@ export function MessageBeat({ beats, onDone, loop, gapMs = 3200, paused, duckAmb
 
   useEffect(() => {
     if (paused) return;
-    if (normalized[index]?.text) breathingPulse();
-    const hold = normalized[index]?.holdMs ?? gapMs;
+    const beat = normalized[index];
+    if (beat?.text) breathingPulse();
+    const minReadTime = beat?.text
+      ? calculateReadingTime(beat.text, {
+          pace: guidancePace,
+          emotionalWeight: beat.emotionalWeight,
+          requiresAction: beat.requiresAction,
+          fontScale,
+          screenReaderEnabled,
+        })
+      : 0;
+    const hold = beat?.text ? Math.max(beat.holdMs ?? 0, minReadTime) : beat?.holdMs ?? gapMs;
     timer.current = setTimeout(() => {
       if (index < normalized.length - 1) {
         setIndex((i) => i + 1);

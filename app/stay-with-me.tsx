@@ -135,7 +135,11 @@ export default function StayWithMe() {
 
       {mode !== 'talk-through' ? (
         <View style={styles.center}>
-          <MessageBeat beats={BEATS_FOR_MODE[mode] ?? REASSURANCE_BEATS} loop duckAmbience={mode !== 'just-stay'} />
+          {/* Keyed on mode: switching tabs mid-cycle must restart the beat
+              timeline from its first line, not carry over an index into a
+              differently-sized array (which could land out of range or on a
+              mismatched line). */}
+          <MessageBeat key={mode} beats={BEATS_FOR_MODE[mode] ?? REASSURANCE_BEATS} loop duckAmbience={mode !== 'just-stay'} />
           <CalmButton label="I feel a little better" variant="primary" onPress={finish} style={{ marginTop: spacing.xxl }} />
         </View>
       ) : (

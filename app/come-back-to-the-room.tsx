@@ -14,6 +14,8 @@ import { useSessionOnMount } from '@/hooks/useSessionOnMount';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useHaptics } from '@/hooks/useHaptics';
+import { calculateReadingTime, PACE_MULTIPLIER } from '@/engines/textTiming';
+import { useAccessibilityInfo } from '@/hooks/useAccessibilityInfo';
 
 const STEPS: { prompt: string; awayMs: number }[] = [
   { prompt: 'Look at the farthest object in the room. Really look at it.', awayMs: 9000 },
@@ -32,6 +34,8 @@ type Stage = 'reveal' | 'away' | 'done';
 export default function ComeBackToTheRoom() {
   const { palette } = useTheme();
   const calmEnvironment = useSettingsStore((s) => s.calmEnvironment);
+  const guidancePace = useSettingsStore((s) => s.guidancePace);
+  const { fontScale, screenReaderEnabled } = useAccessibilityInfo();
   const { breathingPulse, softConfirmation } = useHaptics();
   const logTechnique = useSessionStore((s) => s.logTechnique);
   const endSession = useSessionStore((s) => s.end);
@@ -56,11 +60,21 @@ export default function ComeBackToTheRoom() {
     if (stage === 'done') return undefined;
     if (stage === 'reveal') {
       dim.value = withTiming(0, { duration: 600, easing: Easing.out(Easing.sin) });
-      const t = setTimeout(() => setStage('away'), READ_MS);
+      // READ_MS is a floor, not a fixed value — a short prompt like "Look at
+      // your own hands for a moment." shouldn't get the same time as the
+      // longest one here, and a screen reader or larger text needs longer still.
+      const readMs = Math.max(
+        READ_MS,
+        calculateReadingTime(STEPS[stepIndex].prompt, { pace: guidancePace, fontScale, screenReaderEnabled })
+      );
+      const t = setTimeout(() => setStage('away'), readMs);
       timers.current.push(t);
     } else if (stage === 'away') {
       dim.value = withTiming(0.93, { duration: 1200, easing: Easing.inOut(Easing.sin) });
-      const awayMs = STEPS[stepIndex].awayMs;
+      // The look-away duration is this exercise's "action time" — apply the
+      // same pace preference used for reading time so Slower/Faster feels
+      // consistent across the whole session, not just the on-screen text.
+      const awayMs = Math.round(STEPS[stepIndex].awayMs * PACE_MULTIPLIER[guidancePace]);
       pulseInterval.current = setInterval(breathingPulse, 2500);
       const t = setTimeout(() => {
         if (pulseInterval.current) clearInterval(pulseInterval.current);

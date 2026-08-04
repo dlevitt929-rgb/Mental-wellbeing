@@ -1,14 +1,17 @@
 import React from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
-import { createAudioPlayer } from 'expo-audio';
 import { useTheme } from '@/theme/ThemeProvider';
 import { Body, Caption } from '@/theme/Type';
 import { spacing, radii } from '@/theme/tokens';
 import { EnvironmentId, ENVIRONMENT_LABELS, ENVIRONMENT_EMOJI } from '@/components/environments/types';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useHaptics } from '@/hooks/useHaptics';
-import { soundForEnvironment, SOUND_SOURCES } from '@/engines/soundEngine';
+import { soundForEnvironment } from '@/engines/soundEngine';
+import { AudioManager } from '@/engines/audio/AudioManager';
 import { useLongPressActions, ShortcutSheet } from '@/components/LongPressMenu';
+
+const PREVIEW_OWNER = 'environment-preview';
+let previewTimer: ReturnType<typeof setTimeout> | null = null;
 
 const ALL: EnvironmentId[] = ['night', 'rain', 'ocean', 'fire', 'forest', 'clouds', 'sunset', 'abstract'];
 
@@ -69,9 +72,16 @@ function EnvironmentCard({
         {
           label: 'Preview sound',
           onPress: () => {
-            const player = createAudioPlayer(SOUND_SOURCES[soundForEnvironment(id)]);
-            player.play();
-            setTimeout(() => player.pause(), 2500);
+            // Routed through AudioManager instead of a raw player: it gets a
+            // real fade in/out for free, correctly ducks anything already
+            // playing, and a second tap replaces the previous preview
+            // instead of layering a new player on top of it.
+            if (previewTimer) clearTimeout(previewTimer);
+            AudioManager.request(PREVIEW_OWNER, soundForEnvironment(id), { volume: 0.5, fadeMs: 200 });
+            previewTimer = setTimeout(() => {
+              AudioManager.release(PREVIEW_OWNER, 500);
+              previewTimer = null;
+            }, 2600);
           },
         },
         {

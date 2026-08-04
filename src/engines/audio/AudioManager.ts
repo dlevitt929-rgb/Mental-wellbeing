@@ -40,6 +40,10 @@ let fadeTimer: ReturnType<typeof setInterval> | null = null;
 let baseVolume = 0;
 let duckDepth = 0;
 let requestSeq = 0;
+/** Set only while a cross-deck fade is in flight, so an interruption (the
+ *  app backgrounding mid-crossfade) can finalize the swap immediately
+ *  instead of leaving `activeDeck` pointing at the outgoing sound. */
+let pendingFlipTo: 'A' | 'B' | null = null;
 
 function activePlayer(): AudioPlayer {
   return (activeDeck === 'A' ? deckA : deckB) as AudioPlayer;
@@ -53,6 +57,10 @@ function clearFade() {
     clearInterval(fadeTimer);
     fadeTimer = null;
   }
+  // Whoever cancels a fade is taking over; a stale pending-flip would
+  // otherwise point handleAppStateChange at a swap that's no longer
+  // happening. The crossfade path re-asserts this right after calling in.
+  pendingFlipTo = null;
 }
 
 function effectiveVolume(): number {
@@ -82,13 +90,34 @@ function rampVolume(player: AudioPlayer, to: number, ms: number, onDone?: () => 
 
 function handleAppStateChange(state: AppStateStatus) {
   if (!initialized) return;
-  const { playing } = useAudioManagerStore.getState();
-  if (!playing) return;
   if (state === 'active') {
-    activePlayer().play();
-  } else {
-    activePlayer().pause();
+    const { playing } = useAudioManagerStore.getState();
+    if (playing) {
+      // Snap to the intended target rather than resuming whatever partial
+      // fade volume was frozen when we backgrounded — otherwise a session
+      // that was interrupted mid-fade could resume too quiet, too loud, or
+      // (if a crossfade was mid-flight) still on the outgoing deck.
+      activePlayer().volume = effectiveVolume();
+      activePlayer().play();
+    }
+    return;
   }
+  // Going to background/inactive. If a crossfade was caught mid-flight,
+  // finish the deck swap logically right now — the flip is already visually
+  // "decided," it just hasn't reached t=1 yet — so `activeDeck` never points
+  // at a sound that's about to be silenced instead of the intended new one.
+  if (pendingFlipTo) {
+    activeDeck = pendingFlipTo;
+    pendingFlipTo = null;
+  }
+  // BOTH decks may have non-zero volume right now if a crossfade was
+  // running — pausing only the "active" one used to leave the other deck
+  // quietly playing underneath, the exact "audio continues after
+  // backgrounding" bug. Cancel the fade and pause both unconditionally;
+  // it's a no-op for whichever deck was already silent.
+  clearFade();
+  deckA?.pause();
+  deckB?.pause();
 }
 
 function ensureInitialized() {
@@ -137,11 +166,13 @@ export const AudioManager = {
     } else {
       const outgoing = activePlayer();
       const incoming = inactivePlayer();
+      const incomingDeck = activeDeck === 'A' ? 'B' : 'A';
       incoming.replace(SOUND_SOURCES[soundId]);
       incoming.volume = 0;
       incoming.play();
 
       clearFade();
+      pendingFlipTo = incomingDeck;
       const steps = Math.max(1, Math.round(fadeMs / 50));
       const outStart = outgoing.volume ?? 0;
       const inTarget = effectiveVolume();
@@ -153,10 +184,11 @@ export const AudioManager = {
         incoming.volume = inTarget * t;
         if (t >= 1) {
           clearFade();
+          pendingFlipTo = null;
           // Only finalize the swap if nothing newer has been requested since.
           if (mySeq === requestSeq) {
             outgoing.pause();
-            activeDeck = activeDeck === 'A' ? 'B' : 'A';
+            activeDeck = incomingDeck;
           }
         }
       }, 50);
