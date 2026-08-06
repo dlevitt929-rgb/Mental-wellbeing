@@ -70,7 +70,7 @@ export default function JournalPrivacy() {
       return;
     }
     const hash = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, pinDraft);
-    setPinHash(hash);
+    await setPinHash(hash);
     setLockEnabled(true);
     setSettingPin(null);
     setPinDraft('');

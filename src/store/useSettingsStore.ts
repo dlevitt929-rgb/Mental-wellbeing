@@ -15,7 +15,6 @@ interface SettingsState {
   appearance: Appearance;
   soundEnabled: boolean;
   hapticsEnabled: boolean;
-  nightReminderEnabled: boolean;
   analyticsOptIn: boolean; // always false unless the user explicitly opts in; nothing is sent anywhere in this build regardless
   calmEnvironment: EnvironmentId;
   sleepEnvironment: EnvironmentId;
@@ -38,7 +37,6 @@ interface SettingsState {
   setAppearance: (v: Appearance) => void;
   setSoundEnabled: (v: boolean) => void;
   setHapticsEnabled: (v: boolean) => void;
-  setNightReminderEnabled: (v: boolean) => void;
   setAnalyticsOptIn: (v: boolean) => void;
   setCalmEnvironment: (v: EnvironmentId) => void;
   setSleepEnvironment: (v: EnvironmentId) => void;
@@ -58,7 +56,6 @@ export const useSettingsStore = create<SettingsState>()(
       appearance: 'dark',
       soundEnabled: true,
       hapticsEnabled: true,
-      nightReminderEnabled: true,
       analyticsOptIn: false,
       calmEnvironment: 'abstract',
       sleepEnvironment: 'night',
@@ -73,7 +70,6 @@ export const useSettingsStore = create<SettingsState>()(
       setAppearance: (v) => set({ appearance: v }),
       setSoundEnabled: (v) => set({ soundEnabled: v }),
       setHapticsEnabled: (v) => set({ hapticsEnabled: v }),
-      setNightReminderEnabled: (v) => set({ nightReminderEnabled: v }),
       setAnalyticsOptIn: (v) => set({ analyticsOptIn: v }),
       setCalmEnvironment: (v) => set({ calmEnvironment: v }),
       setSleepEnvironment: (v) => set({ sleepEnvironment: v }),

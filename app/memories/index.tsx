@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, TextInput, Pressable } from 'react-native';
+import { View, StyleSheet, TextInput, Pressable, Linking, AppState, AppStateStatus } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated';
+import Animated, { FadeInDown, LinearTransition, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, Easing } from 'react-native-reanimated';
 import {
   useAudioRecorder,
   useAudioRecorderState,
   RecordingPresets,
   requestRecordingPermissionsAsync,
+  getRecordingPermissionsAsync,
+  setAudioModeAsync,
   createAudioPlayer,
 } from 'expo-audio';
 import { Screen } from '@/components/Screen';
@@ -148,43 +150,112 @@ export default function Memories() {
         </View>
       )}
 
-      {mode === 'record' && <VoiceRecorder onDone={() => setMode('list')} onCancel={() => setMode('list')} />}
+      {mode === 'record' && (
+        <VoiceRecorder onDone={() => setMode('list')} onCancel={() => setMode('list')} onWriteInstead={() => setMode('write')} />
+      )}
     </Screen>
   );
 }
 
-function VoiceRecorder({ onDone, onCancel }: { onDone: () => void; onCancel: () => void }) {
+type PermissionUiState = 'unknown' | 'denied-retry' | 'denied-permanent';
+
+function VoiceRecorder({
+  onDone,
+  onCancel,
+  onWriteInstead,
+}: {
+  onDone: () => void;
+  onCancel: () => void;
+  onWriteInstead: () => void;
+}) {
   const { palette } = useTheme();
   const addVoice = useMemoriesStore((s) => s.addVoice);
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const state = useAudioRecorderState(recorder, 200);
-  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [permissionState, setPermissionState] = useState<PermissionUiState>('unknown');
   const [readyToSave, setReadyToSave] = useState(false);
   const isRecordingRef = useRef(false);
   isRecordingRef.current = state.isRecording;
+  // Guards against a double-tap on "Start recording" firing two overlapping
+  // prepareToRecordAsync()/record() calls before state has a chance to update.
+  const startingRef = useRef(false);
 
-  // Leaving this screen mid-recording (back gesture, backgrounding the app,
-  // an incoming call) must not leave the microphone running silently.
+  // The recording session reserves the mic at the OS level (allowsRecording)
+  // — this must be released the same way it was claimed, on every exit path:
+  // Stop/Save, unmount (back gesture), and going to background mid-recording.
+  const releaseMic = async () => {
+    try {
+      await setAudioModeAsync({ allowsRecording: false });
+    } catch {
+      // Best-effort — nothing more to do if the native side already tore this down.
+    }
+  };
+
+  // Leaving this screen mid-recording (back gesture, an incoming call cutting
+  // the screen away) must not leave the microphone running silently.
   useEffect(() => {
     return () => {
-      if (isRecordingRef.current) recorder.stop().catch(() => {});
+      if (isRecordingRef.current) {
+        recorder.stop().catch(() => {});
+        releaseMic();
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Without the background-recording entitlement (deliberately not requested
+  // — this app has no genuine need to keep recording once it's not visible),
+  // iOS/Android will interrupt the session anyway when backgrounded. Stopping
+  // proactively turns that into "here's what you got, want to save it?"
+  // instead of a silently corrupted or stuck recording state on return.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
+      if (next !== 'active' && isRecordingRef.current) {
+        recorder.stop().then(() => setReadyToSave(true)).catch(() => {});
+        releaseMic();
+      }
+    });
+    return () => sub.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const start = async () => {
-    const { granted } = await requestRecordingPermissionsAsync();
-    if (!granted) {
-      setPermissionDenied(true);
-      return;
+    if (startingRef.current || state.isRecording) return;
+    startingRef.current = true;
+    try {
+      const current = await getRecordingPermissionsAsync();
+      let granted = current.granted;
+      let canAskAgain = current.canAskAgain;
+      if (!granted && canAskAgain) {
+        const requested = await requestRecordingPermissionsAsync();
+        granted = requested.granted;
+        canAskAgain = requested.canAskAgain;
+      }
+      if (!granted) {
+        setPermissionState(canAskAgain ? 'denied-retry' : 'denied-permanent');
+        return;
+      }
+      setPermissionState('unknown');
+      await setAudioModeAsync({ allowsRecording: true });
+      await recorder.prepareToRecordAsync();
+      recorder.record();
+    } catch {
+      // A real device/OS-level failure (e.g. mic already claimed elsewhere) —
+      // never leave the screen stuck on a silent, unexplained non-response.
+      await releaseMic();
+      setPermissionState('denied-retry');
+    } finally {
+      startingRef.current = false;
     }
-    await recorder.prepareToRecordAsync();
-    recorder.record();
   };
 
   const stop = async () => {
-    await recorder.stop();
-    setReadyToSave(true);
+    try {
+      await recorder.stop();
+      setReadyToSave(true);
+    } finally {
+      await releaseMic();
+    }
   };
 
   const save = () => {
@@ -192,21 +263,41 @@ function VoiceRecorder({ onDone, onCancel }: { onDone: () => void; onCancel: () 
     onDone();
   };
 
-  if (permissionDenied) {
+  if (permissionState !== 'unknown') {
     return (
       <View style={[styles.form, { borderColor: palette.border, backgroundColor: palette.surface, alignItems: 'center' }]}>
         <Body color={palette.textMuted} center>
           Ebb needs microphone access to record your voice. Nothing is sent anywhere — it stays on
           this device.
         </Body>
-        <CalmButton label="Back" variant="ghost" style={{ marginTop: spacing.md }} onPress={onCancel} />
+        {permissionState === 'denied-permanent' ? (
+          <>
+            <Caption color={palette.textFaint} center style={{ marginTop: spacing.sm }}>
+              It looks like microphone access was turned off for Ebb. You can turn it back on in
+              Settings → Ebb → Microphone.
+            </Caption>
+            <CalmButton
+              label="Open Settings"
+              variant="primary"
+              style={{ marginTop: spacing.md, width: '100%' }}
+              onPress={() => Linking.openSettings().catch(() => {})}
+            />
+          </>
+        ) : (
+          <CalmButton label="Try again" variant="primary" style={{ marginTop: spacing.md, width: '100%' }} onPress={start} />
+        )}
+        <CalmButton label="Write it instead" style={{ marginTop: spacing.sm, width: '100%' }} onPress={onWriteInstead} />
+        <CalmButton label="Back" variant="ghost" onPress={onCancel} />
       </View>
     );
   }
 
   return (
     <View style={[styles.form, { borderColor: palette.border, backgroundColor: palette.surface, alignItems: 'center' }]}>
-      <Headline center>{state.isRecording ? 'Recording…' : readyToSave ? 'Got it.' : 'Say whatever you want future-you to hear.'}</Headline>
+      {state.isRecording && <RecordingIndicator />}
+      <Headline center style={{ marginTop: state.isRecording ? spacing.sm : 0 }}>
+        {state.isRecording ? 'Recording…' : readyToSave ? 'Got it.' : 'Say whatever you want future-you to hear.'}
+      </Headline>
       <View style={{ marginTop: spacing.xl, gap: 10, width: '100%' }}>
         {!state.isRecording && !readyToSave && (
           <CalmButton label="Start recording" variant="primary" size="large" style={{ width: '100%' }} onPress={start} />
@@ -217,14 +308,38 @@ function VoiceRecorder({ onDone, onCancel }: { onDone: () => void; onCancel: () 
         {readyToSave && (
           <CalmButton label="Save this" variant="primary" size="large" style={{ width: '100%' }} onPress={save} />
         )}
+        {!state.isRecording && <CalmButton label="Write it instead" variant="ghost" onPress={onWriteInstead} />}
         <CalmButton label="Cancel" variant="ghost" onPress={onCancel} />
       </View>
     </View>
   );
 }
 
+/** A small pulsing dot — an unambiguous, always-visible "the mic is live"
+ *  signal that doesn't depend on reading the headline text. */
+function RecordingIndicator() {
+  const { palette } = useTheme();
+  const pulse = useSharedValue(1);
+
+  useEffect(() => {
+    pulse.value = withRepeat(
+      withSequence(
+        withTiming(0.35, { duration: 700, easing: Easing.inOut(Easing.sin) }),
+        withTiming(1, { duration: 700, easing: Easing.inOut(Easing.sin) })
+      ),
+      -1,
+      true
+    );
+  }, [pulse]);
+
+  const dotStyle = useAnimatedStyle(() => ({ opacity: pulse.value }));
+
+  return <Animated.View style={[styles.recordingDot, dotStyle, { backgroundColor: palette.danger }]} />;
+}
+
 const styles = StyleSheet.create({
   form: { padding: spacing.md, borderRadius: radii.md, borderWidth: 1, marginBottom: spacing.lg },
   bodyInput: { fontSize: 16, minHeight: 120, textAlignVertical: 'top' },
   card: { flexDirection: 'row', alignItems: 'center', padding: spacing.md, borderRadius: radii.md, borderWidth: 1, gap: 10 },
+  recordingDot: { width: 14, height: 14, borderRadius: 7 },
 });

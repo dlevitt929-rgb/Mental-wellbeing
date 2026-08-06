@@ -6,12 +6,13 @@ import { CalmButton } from '@/components/CalmButton';
 import { Whisper, Body, Headline, Caption } from '@/theme/Type';
 import { useTheme, useModeOnFocus } from '@/theme/ThemeProvider';
 import { spacing, radii } from '@/theme/tokens';
-import { CRISIS_RESOURCES, RESPONSIBLE_MEDICAL_LINE } from '@/engines/safety';
+import { CRISIS_RESOURCES, RESPONSIBLE_MEDICAL_LINE, getLocalEmergencyNumber } from '@/engines/safety';
 
 export default function Crisis() {
   useModeOnFocus('night');
   const { palette } = useTheme();
   const { level } = useLocalSearchParams<{ level?: string }>();
+  const localEmergency = getLocalEmergencyNumber();
 
   return (
     <Screen scroll>
@@ -34,13 +35,28 @@ export default function Crisis() {
         </Body>
       )}
 
-      <CalmButton
-        label="Call emergency services"
-        variant="danger"
-        size="large"
-        style={{ marginTop: spacing.xl }}
-        onPress={() => Linking.openURL('tel:911').catch(() => {})}
-      />
+      {localEmergency ? (
+        <>
+          <CalmButton
+            label={`Call emergency services (${localEmergency.number})`}
+            variant="danger"
+            size="large"
+            style={{ marginTop: spacing.xl }}
+            onPress={() => Linking.openURL(`tel:${localEmergency.number}`).catch(() => {})}
+          />
+          <Caption color={palette.textFaint} style={{ marginTop: spacing.sm }}>
+            Guessed from your device's language & region setting for {localEmergency.region} — not your
+            actual location. If that's not where you are right now, use your local emergency number
+            instead.
+          </Caption>
+        </>
+      ) : (
+        <Caption color={palette.textFaint} style={{ marginTop: spacing.xl }}>
+          Ebb can't reliably guess your local emergency number. Please dial it directly — 911 in the
+          US and Canada, 999 in the UK, 112 across most of the EU, 000 in Australia, or search
+          "emergency number" for your country.
+        </Caption>
+      )}
 
       <View style={{ marginTop: spacing.xl, gap: 12 }}>
         <Headline>Crisis support lines</Headline>

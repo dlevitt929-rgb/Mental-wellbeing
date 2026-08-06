@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Switch, Alert, Pressable } from 'react-native';
+import { View, StyleSheet, Switch, Alert, Pressable, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { FloatingHelpButton } from '@/components/FloatingHelpButton';
@@ -19,6 +19,7 @@ import { EnvironmentPicker } from '@/components/EnvironmentPicker';
 import { Appearance, VisualEffects } from '@/store/useSettingsStore';
 import { useHaptics } from '@/hooks/useHaptics';
 import { GuidancePace } from '@/engines/textTiming';
+import { LEGAL_LINKS } from '@/config/legal';
 
 const VISUAL_EFFECTS_OPTIONS: { id: VisualEffects; label: string }[] = [
   { id: 'auto', label: 'Automatic' },
@@ -44,10 +45,8 @@ export default function Settings() {
   const setAppearance = useSettingsStore((s) => s.setAppearance);
   const soundEnabled = useSettingsStore((s) => s.soundEnabled);
   const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
-  const nightReminderEnabled = useSettingsStore((s) => s.nightReminderEnabled);
   const setSoundEnabled = useSettingsStore((s) => s.setSoundEnabled);
   const setHapticsEnabled = useSettingsStore((s) => s.setHapticsEnabled);
-  const setNightReminderEnabled = useSettingsStore((s) => s.setNightReminderEnabled);
   const journalPatternHintsEnabled = useSettingsStore((s) => s.journalPatternHintsEnabled);
   const setJournalPatternHintsEnabled = useSettingsStore((s) => s.setJournalPatternHintsEnabled);
   const calmEnvironment = useSettingsStore((s) => s.calmEnvironment);
@@ -85,7 +84,7 @@ export default function Settings() {
             useLettersStore.setState({ letters: [] });
             useWorryStore.setState({ worries: [] });
             useJournalStore.setState({ entries: [] });
-            useMemoriesStore.setState({ memories: [] });
+            useMemoriesStore.getState().clear();
           },
         },
       ],
@@ -170,11 +169,6 @@ export default function Settings() {
         <ToggleRow label="Sound" value={soundEnabled} onChange={setSoundEnabled} />
         <ToggleRow label="Haptics" value={hapticsEnabled} onChange={setHapticsEnabled} />
         <ToggleRow
-          label="Remind me about worries I set aside"
-          value={nightReminderEnabled}
-          onChange={setNightReminderEnabled}
-        />
-        <ToggleRow
           label="Gentle patterns in my journal"
           value={journalPatternHintsEnabled}
           onChange={setJournalPatternHintsEnabled}
@@ -226,8 +220,65 @@ export default function Settings() {
         <Pressable onPress={() => router.push('/crisis')} style={{ marginTop: spacing.sm }}>
           <Caption color={palette.accent}>Crisis & emergency resources →</Caption>
         </Pressable>
+        <Pressable
+          onPress={() => Linking.openURL(LEGAL_LINKS.privacyPolicyUrl).catch(() => {})}
+          style={{ marginTop: spacing.sm }}
+        >
+          <Caption color={palette.accent}>Privacy policy →</Caption>
+        </Pressable>
+        <Pressable
+          onPress={() => Linking.openURL(LEGAL_LINKS.termsOfUseUrl).catch(() => {})}
+          style={{ marginTop: spacing.sm }}
+        >
+          <Caption color={palette.accent}>Terms of use →</Caption>
+        </Pressable>
+        <Pressable
+          onPress={() => Linking.openURL(LEGAL_LINKS.supportUrl).catch(() => {})}
+          style={{ marginTop: spacing.sm }}
+        >
+          <Caption color={palette.accent}>Support →</Caption>
+        </Pressable>
       </Section>
+
+      {__DEV__ && <DeveloperSection />}
     </Screen>
+  );
+}
+
+/** Never present in a release build — __DEV__ is a compile-time constant
+ *  that Metro strips to `false` (and dead-code-eliminates the guarded branch)
+ *  outside development. Exists purely so screenshots and reviewer test
+ *  passes can start from realistic, clearly-fictional content instead of an
+ *  empty app or, worse, a real tester's actual journal. */
+function DeveloperSection() {
+  const { palette } = useTheme();
+  const { warning } = useHaptics();
+  return (
+    <Section title="Developer (dev builds only)">
+      <Body color={palette.textFaint}>
+        Not shown in production builds. Seeds or clears fictional demo content for screenshots.
+      </Body>
+      <View style={{ flexDirection: 'row', gap: 10, marginTop: spacing.sm }}>
+        <CalmButton
+          label="Load demo content"
+          style={{ flex: 1 }}
+          onPress={async () => {
+            const { loadDemoContent } = await import('@/data/demoContent');
+            loadDemoContent();
+          }}
+        />
+        <CalmButton
+          label="Clear demo content"
+          variant="danger"
+          style={{ flex: 1 }}
+          onPress={async () => {
+            warning();
+            const { clearDemoContent } = await import('@/data/demoContent');
+            clearDemoContent();
+          }}
+        />
+      </View>
+    </Section>
   );
 }
 

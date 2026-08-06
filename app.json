@@ -12,13 +12,15 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "app.ebb.calm",
+      "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "Ebb can use your camera for grounding exercises that ask you to find objects around you. Nothing is recorded, saved, or uploaded.",
-        "NSContactsUsageDescription": "Ebb can use your contacts to help you quickly reach someone you trust when you don't want to be alone."
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "app.ebb.calm",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#0B0F14",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -35,7 +37,19 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#0B0F14",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#0B0F14"
+          }
+        }
+      ],
       [
         "expo-camera",
         {
@@ -45,7 +59,9 @@
       [
         "expo-audio",
         {
-          "microphonePermission": false
+          "microphonePermission": "Allow microphone access so you can record private voice memories and messages for yourself. Recordings stay on this device.",
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
         }
       ],
       [

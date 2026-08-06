@@ -54,3 +54,57 @@ export const CRISIS_RESOURCES: CrisisResource[] = [
   { region: 'Ireland', name: 'Samaritans Ireland', contact: '116 123', kind: 'call' },
   { region: 'Australia', name: 'Lifeline Australia', contact: '13 11 14', kind: 'call' },
 ];
+
+/**
+ * A hardcoded "Call emergency services" button used to always dial 911 —
+ * correct for the US, silently wrong (and potentially dangerous at the worst
+ * possible moment) for anyone elsewhere. There is no reliable way to know a
+ * user's real location without asking for it, which this app deliberately
+ * doesn't do — so this is a best-effort guess from the device's language/
+ * region setting, always paired in the UI with a visible "not right?"
+ * fallback rather than presented as a confident answer.
+ */
+export interface EmergencyNumber {
+  region: string;
+  number: string;
+}
+
+const EMERGENCY_NUMBERS: Record<string, EmergencyNumber> = {
+  US: { region: 'the United States', number: '911' },
+  CA: { region: 'Canada', number: '911' },
+  MX: { region: 'Mexico', number: '911' },
+  GB: { region: 'the United Kingdom', number: '999' },
+  AU: { region: 'Australia', number: '000' },
+  NZ: { region: 'New Zealand', number: '111' },
+  JP: { region: 'Japan', number: '119' },
+  IN: { region: 'India', number: '112' },
+  ZA: { region: 'South Africa', number: '10111' },
+  BR: { region: 'Brazil', number: '190' },
+};
+
+// The EU standard — plus a handful of other countries that also route 112.
+const REGIONS_USING_112 = [
+  'IE', 'FR', 'DE', 'ES', 'IT', 'NL', 'BE', 'PT', 'AT', 'SE', 'FI', 'DK', 'NO', 'PL', 'GR',
+  'CZ', 'RO', 'HU', 'CH', 'IS', 'HR', 'SK', 'SI', 'EE', 'LV', 'LT', 'LU', 'MT', 'CY', 'BG',
+];
+
+/** Best-effort two-letter region from the device's locale (e.g. "en-US" → "US"). */
+function detectRegion(): string | null {
+  try {
+    const locale = Intl.DateTimeFormat().resolvedOptions().locale;
+    const region = locale.split('-')[1];
+    return region && region.length === 2 ? region.toUpperCase() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Null when detection isn't possible/confident — callers must have a
+ *  generic fallback for that case, never assume a number. */
+export function getLocalEmergencyNumber(): EmergencyNumber | null {
+  const region = detectRegion();
+  if (!region) return null;
+  if (EMERGENCY_NUMBERS[region]) return EMERGENCY_NUMBERS[region];
+  if (REGIONS_USING_112.includes(region)) return { region: 'your country', number: '112' };
+  return null;
+}
